@@ -20,7 +20,6 @@ else:
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide")
 
-# הזרקת עיצוב מתוקן ללא משתני Python כדי למנוע שגיאות שרת
 st.markdown("""
     <style>
     .stApp { direction: rtl; text-align: right; color: #202125; }
@@ -168,26 +167,9 @@ if check_password():
     def fetch_news_data():
         NEWS_FEEDS = {
             "עיתון דבר (דבר העובדים)": "https://www.davar1.co.il/feed/",
-            "כלכלליסט": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml",
+            "כלכליסט": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml",
             "גלובס": "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2",
             "דה מרקר": "https://www.themarker.com/srv/rss/all",
             "Ynet - כלכלה": "https://www.ynet.co.il/Integration/StoryRss538.xml",
             "מעריב - מבזקים": "https://www.maariv.co.il/Rss/RssFeedsMivzakim",
-            "מקור ראשון": "https://www.makorrishon.co.il/category/news/feed/",
-            "אתר כיפה": "https://www.kipa.co.il/rss/news.xml",
-            "The Times of Israel": "https://www.timesofisrael.com/il/feed/",
-            "The Jerusalem Post": "https://www.jpost.com/rss/israelnews"
-        }
-        news_alerts = []
-        for source_name, feed_url in NEWS_FEEDS.items():
-            try:
-                feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:15]:
-                    title = entry.get('title', '')
-                    summary = entry.get('summary', '') or entry.get('description', '') or ''
-                    link = entry.get('link', '')
-                    pub_date = entry.get('published', '') or entry.get('updated', '') or "לא צוין"
-                    
-                    full_text_lower = f"{title} {summary}".lower()
-                    match_he = any(word in full_text_lower for word in KEYWORDS)
-                    match_en = any(word in full_text_lower for word in KEYWORDS_EN)
+            "מקור ראשון
