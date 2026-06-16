@@ -20,14 +20,13 @@ else:
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
 
-# הזרקת ה-CSS עם הפרמטר הנכון - unsafe_allow_html=True!
 st.markdown("""
     <style>
     /* עיצוב כללי ויישור לעברית */
     .stApp { direction: rtl; text-align: right; background-color: #ffffff; color: #202125; }
     
     /* כותרות בצבע תכלת וולט רשמי */
-    h1, h2, h3 { color: #00c2e8 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 800; }
+    h1, h2, h3 { color: #00c2e8 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 800; text-align: right; }
     
     /* עיצוב כרטיסיות המידע של וולט */
     .wolt-card {
@@ -39,8 +38,8 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         text-align: right;
     }
-    .wolt-card h4 { color: #00c2e8 !important; margin-top: 0; font-size: 18px; }
-    .wolt-card p { font-size: 15px; color: #202125; line-height: 1.6; }
+    .wolt-card h4 { color: #00c2e8 !important; margin-top: 0; font-size: 18px; text-align: right; }
+    .wolt-card p { font-size: 15px; color: #202125; line-height: 1.6; text-align: right; }
     
     /* כפתורים ולינקים */
     a { color: #00c2e8 !important; text-decoration: none; font-weight: bold; }
@@ -51,16 +50,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# מבנה ראש האתר: לוגו מיושר וכותרת מותאמת
+# מבנה ראש האתר חסין-שגיאות: שימוש בסטרימליט מקורי עבור הלוגו כדי למנוע חסימות
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=130)
+
+# כותרות מיושרות פיקס לימין
 st.markdown("""
-    <div style="display: flex; align-items: center; margin-bottom: 20px;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png" style="width: 120px; margin-left: 20px;">
-        <div>
-            <h1 style="margin: 0; padding: 0;">Public Policy Scout</h1>
-            <p style="margin: 0; color: #808080; font-size: 16px;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
-        </div>
+    <div style="text-align: right; margin-top: 10px;">
+        <h1 style="margin: 0; padding: 0; color: #00c2e8;">Public Policy Scout</h1>
+        <p style="margin: 5px 0 0 0; color: #808080; font-size: 16px; direction: rtl; text-align: right;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
     </div>
-    <hr style="border: 0; height: 2px; background: #00c2e8; margin-bottom: 30px;">
+    <hr style="border: 0; height: 2px; background: #00c2e8; margin-bottom: 30px; margin-top: 15px;">
 """, unsafe_allow_html=True)
 
 # ==========================================
@@ -244,7 +243,6 @@ if check_password():
             st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
-                # הזרקת כרטיסייה מעוצבת ומיושרת כמו שצריך בעברית
                 st.markdown(f"""
                     <div class="wolt-card">
                         <h4>{alert['מקור']} | {alert['קטגוריה']}</h4>
@@ -285,7 +283,6 @@ if check_password():
             st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
         else:
             for alert in news_alerts:
-                # כרטיסיית חדשות כחולה ומעוצבת
                 st.markdown(f"""
                     <div class="wolt-card">
                         <h4>📰 {alert['מקור']}</h4>
@@ -298,4 +295,4 @@ if check_password():
                 with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
                     analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
                     st.write(analysis)
-                st.markdown("<br>", unsafe_allow_index=False) # חסין
+                st.markdown("<br>", unsafe_allow_html=True)
