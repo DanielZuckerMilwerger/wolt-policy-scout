@@ -1,0 +1,286 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww29200\viewh18460\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 import streamlit as st\
+import requests\
+import pandas as pd\
+from datetime import datetime\
+import google.generativeai as genai\
+import feedparser\
+\
+# ==========================================\
+# 1. \uc0\u1488 \u1489 \u1496 \u1495 \u1492  \u1493 \u1502 \u1508 \u1514 \u1495 \u1493 \u1514  API (Streamlit Secrets)\
+# ==========================================\
+if "GEMINI_API_KEY" in st.secrets:\
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])\
+    model = genai.GenerativeModel('gemini-pro')\
+else:\
+    st.warning("\uc0\u1513 \u1497 \u1501  \u1500 \u1489 : \u1502 \u1508 \u1514 \u1495  Gemini API \u1500 \u1488  \u1502 \u1493 \u1490 \u1491 \u1512  \u1506 \u1491 \u1497 \u1497 \u1503  \u1489 -Secrets \u1513 \u1500  \u1492 \u1513 \u1512 \u1514 . \u1492 \u1502 \u1506 \u1512 \u1499 \u1514  \u1514 \u1510 \u1497 \u1490  \u1504 \u1514 \u1493 \u1504 \u1497 \u1501  \u1488 \u1498  \u1500 \u1488  \u1514 \u1489 \u1510 \u1506  \u1504 \u1497 \u1514 \u1493 \u1495  AI.")\
+    model = None\
+\
+# ==========================================\
+# 2. \uc0\u1506 \u1497 \u1510 \u1493 \u1489  \u1493 \u1502 \u1497 \u1514 \u1493 \u1490  (Wolt Blue & Styling)\
+# ==========================================\
+WOLT_BLUE = "#00c2e8"\
+\
+st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide")\
+\
+st.markdown(f"""\
+    <style>\
+    /* \uc0\u1499 \u1497 \u1493 \u1493 \u1503  \u1499 \u1514 \u1497 \u1489 \u1492  \u1502 \u1497 \u1502 \u1497 \u1503  \u1500 \u1513 \u1502 \u1488 \u1500  \u1506 \u1489 \u1493 \u1512  \u1506 \u1489 \u1512 \u1497 \u1514  */\
+    .stApp \{\{ direction: rtl; text-align: right; color: #202125; \}\}\
+    h1, h2, h3, h4 \{\{ color: \{WOLT_BLUE\} !important; font-family: 'Segoe UI', sans-serif; \}\}\
+    .wolt-card \{\{\
+        border-right: 5px solid \{WOLT_BLUE\};\
+        padding: 15px;\
+        background-color: #f8f9fa;\
+        border-radius: 4px;\
+        margin-bottom: 15px;\
+        text-align: right;\
+    \}\}\
+    /* \uc0\u1492 \u1514 \u1488 \u1502 \u1514  \u1499 \u1508 \u1514 \u1493 \u1512 \u1497 \u1501  \u1493 \u1512 \u1499 \u1497 \u1489 \u1497 \u1501  \u1500 \u1497 \u1502 \u1497 \u1503  */\
+    .stTextInput, .stFileUploader \{\{ direction: rtl; text-align: right; \}\}\
+    </style>\
+""", unsafe_allow_index=True)\
+\
+# \uc0\u1499 \u1493 \u1514 \u1512 \u1514  \u1492 \u1488 \u1514 \u1512  \u1493 \u1500 \u1493 \u1490 \u1493 \
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=120)\
+st.title("Wolt Israel - Public Policy Scout")\
+st.subheader("\uc0\u1502 \u1506 \u1512 \u1499 \u1514  \u1488 \u1512 \u1490 \u1493 \u1504 \u1497 \u1514  \u1500 \u1504 \u1497 \u1496 \u1493 \u1512  \u1505 \u1497 \u1499 \u1493 \u1504 \u1497 \u1501  \u1493 \u1492 \u1494 \u1491 \u1502 \u1504 \u1493 \u1497 \u1493 \u1514  \u1512 \u1490 \u1493 \u1500 \u1496 \u1493 \u1512 \u1497 \u1493 \u1514 ")\
+\
+# ==========================================\
+# 3. \uc0\u1502 \u1504 \u1490 \u1504 \u1493 \u1503  \u1489 \u1511 \u1512 \u1514  \u1499 \u1504 \u1497 \u1505 \u1492  (\u1492 \u1490 \u1504 \u1514  \u1505 \u1497 \u1505 \u1502 \u1492 )\
+# ==========================================\
+def check_password():\
+    if "authenticated" not in st.session_state:\
+        st.session_state["authenticated"] = False\
+    \
+    if not st.session_state["authenticated"]:\
+        st.markdown("### \uc0\u55357 \u56594  \u1499 \u1504 \u1497 \u1505 \u1492  \u1502 \u1488 \u1493 \u1489 \u1496 \u1495 \u1514  \u1500 \u1506 \u1493 \u1489 \u1491 \u1497  \u1493 \u1493 \u1500 \u1496 ")\
+        password = st.text_input("\uc0\u1488 \u1504 \u1488  \u1492 \u1499 \u1504 \u1505  \u1505 \u1497 \u1505 \u1502 \u1514  \u1490 \u1497 \u1513 \u1492 :", type="password")\
+        if password == "WoltPolicy2026":  # \uc0\u1514 \u1493 \u1499 \u1500  \u1500 \u1513 \u1504 \u1493 \u1514  \u1488 \u1514  \u1492 \u1505 \u1497 \u1505 \u1502 \u1492  \u1499 \u1488 \u1503  \u1489 \u1499 \u1500  \u1506 \u1514 \
+            st.session_state["authenticated"] = True\
+            st.rerun()\
+        elif password:\
+            st.error("\uc0\u9888 \u65039  \u1505 \u1497 \u1505 \u1502 \u1492  \u1513 \u1490 \u1493 \u1497 \u1492 . \u1492 \u1490 \u1497 \u1513 \u1492  \u1495 \u1505 \u1493 \u1502 \u1492 .")\
+        return False\
+    return True\
+\
+# \uc0\u1488 \u1501  \u1492 \u1502 \u1513 \u1514 \u1502 \u1513  \u1506 \u1489 \u1512  \u1488 \u1514  \u1495 \u1505 \u1497 \u1502 \u1514  \u1492 \u1505 \u1497 \u1505 \u1502 \u1492 \
+if check_password():\
+\
+    # ==========================================\
+    # 4. \uc0\u1492 \u1490 \u1491 \u1512 \u1493 \u1514  \u1493 \u1508 \u1497 \u1500 \u1496 \u1512 \u1497 \u1501  (\u1502 \u1497 \u1500 \u1493 \u1514  \u1502 \u1508 \u1514 \u1495 )\
+    # ==========================================\
+    KEYWORDS = [\
+        "\uc0\u1513 \u1500 \u1497 \u1495 \u1497 \u1501 ", "\u1506 \u1510 \u1502 \u1488 \u1497 \u1497 \u1501 ", "\u1513 \u1500 \u1497 \u1495 \u1497 \u1501  \u1506 \u1510 \u1502 \u1488 \u1497 \u1497 \u1501 ", "\u1508 \u1500 \u1496 \u1508 \u1493 \u1512 \u1502 \u1493 \u1514  \u1491 \u1497 \u1490 \u1497 \u1496 \u1500 \u1497 \u1493 \u1514 ", \
+        "\uc0\u1491 \u1493  \u1490 \u1500 \u1490 \u1500 \u1497 ", "\u1499 \u1500 \u1497  \u1512 \u1499 \u1489  \u1511 \u1500 \u1497 \u1501 ", "\u1495 \u1500 \u1496 \u1493 \u1512 \u1492 ", "\u1490 \u1497 \u1490  \u1488 \u1511 \u1493 \u1504 \u1493 \u1502 \u1497 ", "\u1502 \u1494 \u1493 \u1503 ", "\u1502 \u1513 \u1500 \u1493 \u1495 \u1497 \u1501 ", "\u1508 \u1488 \u1512 \u1501 ", "\u1514 \u1512 \u1493 \u1508 \u1493 \u1514 "\
+    ]\
+    \
+    KEYWORDS_EN = [\
+        "couriers", "riders", "delivery", "wolt", "gig economy", \
+        "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"\
+    ]\
+    \
+    PRIORITY_COMMITTEES = ["\uc0\u1493 \u1506 \u1491 \u1514  \u1492 \u1499 \u1500 \u1499 \u1500 \u1492 ", "\u1493 \u1506 \u1491 \u1514  \u1492 \u1499 \u1505 \u1508 \u1497 \u1501 ", "\u1493 \u1506 \u1491 \u1514  \u1492 \u1506 \u1489 \u1493 \u1491 \u1492  \u1493 \u1492 \u1512 \u1493 \u1493 \u1495 \u1492 "]\
+\
+    # ==========================================\
+    # 5. \uc0\u1502 \u1493 \u1495  \u1492 -AI (Gemini)\
+    # ==========================================\
+    def analyze_with_gemini(source, category, title, text_content=""):\
+        if not model:\
+            return "\uc0\u1504 \u1497 \u1514 \u1493 \u1495  \u1492 -AI \u1488 \u1497 \u1504 \u1493  \u1494 \u1502 \u1497 \u1503  \u1502 \u1499 \u1497 \u1493 \u1493 \u1503  \u1513 \u1502 \u1508 \u1514 \u1495  \u1492 -API \u1500 \u1488  \u1492 \u1493 \u1490 \u1491 \u1512 ."\
+            \
+        prompt = f"""\
+        \uc0\u1488 \u1514 \u1492  \u1502 \u1504 \u1492 \u1500  \u1502 \u1491 \u1497 \u1504 \u1497 \u1493 \u1514  \u1510 \u1497 \u1489 \u1493 \u1512 \u1497 \u1514  \u1489 \u1499 \u1497 \u1512  \u1493 \u1497 \u1493 \u1506 \u1509  \u1512 \u1490 \u1493 \u1500 \u1496 \u1493 \u1512 \u1497  \u1513 \u1500  \u1495 \u1489 \u1512 \u1514  \u1493 \u1493 \u1500 \u1496  (Wolt) \u1497 \u1513 \u1512 \u1488 \u1500 .\
+        \uc0\u1500 \u1492 \u1500 \u1503  \u1508 \u1512 \u1505 \u1493 \u1501 /\u1497 \u1491 \u1497 \u1506 \u1492  \u1495 \u1491 \u1513 \u1492  \u1502 \u1492 \u1512 \u1513 \u1514  \u1488 \u1493  \u1502 \u1492 \u1502 \u1502 \u1513 \u1500 \u1492 :\
+        \uc0\u1502 \u1511 \u1493 \u1512 : \{source\} (\{category\})\
+        \uc0\u1499 \u1493 \u1514 \u1512 \u1514 /\u1504 \u1493 \u1513 \u1488 : \{title\}\
+        \uc0\u1514 \u1493 \u1499 \u1503  \u1504 \u1493 \u1505 \u1507  (\u1488 \u1501  \u1497 \u1513 ): \{text_content[:500]\}\
+        \
+        \uc0\u1504 \u1514 \u1495  \u1488 \u1514  \u1492 \u1508 \u1512 \u1505 \u1493 \u1501  \u1489 \u1511 \u1510 \u1512 \u1510 \u1512  (\u1506 \u1491  3 \u1513 \u1493 \u1512 \u1493 \u1514 ). \u1511 \u1489 \u1506  \u1492 \u1488 \u1501  \u1497 \u1513  \u1499 \u1488 \u1503  \u1505 \u1497 \u1499 \u1493 \u1503  \u1488 \u1493  \u1492 \u1494 \u1491 \u1502 \u1504 \u1493 \u1514  \u1500 \u1502 \u1493 \u1491 \u1500  \u1513 \u1500  \u1493 \u1493 \u1500 \u1496  (\u1514 \u1506 \u1505 \u1493 \u1511 \u1514  \u1513 \u1500 \u1497 \u1495 \u1497 \u1501  \u1499 \u1506 \u1510 \u1502 \u1488 \u1497 \u1497 \u1501 , \u1512 \u1490 \u1493 \u1500 \u1510 \u1497 \u1492  \u1514 \u1495 \u1489 \u1493 \u1512 \u1514 \u1497 \u1514 , \u1495 \u1493 \u1489 \u1493 \u1514  \u1512 \u1497 \u1513 \u1493 \u1497 , \u1502 \u1513 \u1500 \u1493 \u1495 \u1497  \u1502 \u1494 \u1493 \u1503 /\u1508 \u1488 \u1512 \u1501 ).\
+        \uc0\u1514 \u1513 \u1493 \u1489 \u1514 \u1498  \u1495 \u1497 \u1497 \u1489 \u1514  \u1500 \u1492 \u1497 \u1493 \u1514  \u1489 \u1506 \u1489 \u1512 \u1497 \u1514 , \u1502 \u1511 \u1510 \u1493 \u1506 \u1497 \u1514  \u1493 \u1502 \u1502 \u1493 \u1511 \u1491 \u1514  \u1500 \u1502 \u1504 \u1492 \u1500 \u1497 \u1501  \u1489 \u1495 \u1489 \u1512 \u1492 .\
+        """\
+        try:\
+            response = model.generate_content(prompt)\
+            return response.text\
+        except:\
+            return "\uc0\u1500 \u1488  \u1504 \u1497 \u1514 \u1503  \u1500 \u1497 \u1497 \u1510 \u1512  \u1504 \u1497 \u1514 \u1493 \u1495  AI \u1499 \u1512 \u1490 \u1506 ."\
+\
+    # ==========================================\
+    # 6. \uc0\u1510 \u1497 \u1504 \u1493 \u1512 \u1493 \u1514  \u1502 \u1511 \u1493 \u1512 \u1493 \u1514  \u1492 \u1502 \u1497 \u1491 \u1506  (Data Pipelines)\
+    # ==========================================\
+    \
+    # \uc0\u1488 . \u1499 \u1504 \u1505 \u1514  \u1497 \u1513 \u1512 \u1488 \u1500  (API)\
+    def fetch_knesset_data():\
+        url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"\
+        params = \{\
+            '$filter': "StartDate ge datetime'" + datetime.now().strftime('%Y-%m-%dT00:00:00') + "'",\
+            '$orderby': "StartDate asc",\
+            '$format': "json"\
+        \}\
+        try:\
+            response = requests.get(url, params=params)\
+            if response.status_code == 200:\
+                events = []\
+                for item in response.json().get('value', []):\
+                    title = item.get('CommitteeSessionName', '') or item.get('Subject', '') or ''\
+                    committee = item.get('CommitteeName', '\uc0\u1493 \u1506 \u1491 \u1492  \u1499 \u1500 \u1500 \u1497 \u1514 ')\
+                    \
+                    if any(word in title for word in KEYWORDS):\
+                        events.append(\{\
+                            "\uc0\u1502 \u1511 \u1493 \u1512 ": "\u55356 \u57307 \u65039  \u1499 \u1504 \u1505 \u1514  \u1497 \u1513 \u1512 \u1488 \u1500 ",\
+                            "\uc0\u1511 \u1496 \u1490 \u1493 \u1512 \u1497 \u1492 ": committee,\
+                            "\uc0\u1499 \u1493 \u1514 \u1512 \u1514 ": title,\
+                            "\uc0\u1514 \u1488 \u1512 \u1497 \u1498 ": datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S').strftime('%d/%m/%Y %H:%M'),\
+                            "\uc0\u1506 \u1491 \u1497 \u1508 \u1493 \u1514 ": "\u55357 \u56613  \u1490 \u1489 \u1493 \u1492 \u1492 " if committee in PRIORITY_COMMITTEES else "\u55357 \u56629  \u1512 \u1490 \u1497 \u1500 \u1492 ",\
+                            "\uc0\u1511 \u1497 \u1513 \u1493 \u1512 ": "https://main.knesset.gov.il/Activity/committees/Pages/AllCommitteesAgendas.aspx"\
+                        \})\
+                return events\
+            return []\
+        except:\
+            return []\
+\
+    # \uc0\u1489 . \u1502 \u1488 \u1490 \u1512  \u1492 \u1495 \u1511 \u1497 \u1511 \u1492  \u1493 \u1514 \u1494 \u1499 \u1497 \u1512 \u1497  \u1492 \u1495 \u1493 \u1511  (API)\
+    def fetch_tazkirim_data():\
+        resource_id = "9207e37d-b6bd-4df5-91db-fc539dfbbf76"\
+        url = "https://data.gov.il/api/3/action/datastore_search"\
+        params = \{'resource_id': resource_id, 'limit': 40, 'sort': 'PublishDate desc'\}\
+        try:\
+            response = requests.get(url, params=params)\
+            if response.status_code == 200:\
+                records = response.json().get('result', \{\}).get('records', [])\
+                tazkirim = []\
+                for item in records:\
+                    title = item.get('TazkirName', '') or item.get('Subject', '') or ''\
+                    ministry = item.get('PublishingMinistry', '\uc0\u1502 \u1513 \u1512 \u1491  \u1502 \u1502 \u1513 \u1500 \u1514 \u1497 ')\
+                    publish_date = item.get('PublishDate', '')\
+                    \
+                    if any(word in title for word in KEYWORDS):\
+                        tazkirim.append(\{\
+                            "\uc0\u1502 \u1511 \u1493 \u1512 ": "\u55357 \u56540  \u1502 \u1488 \u1490 \u1512  \u1492 \u1495 \u1511 \u1497 \u1511 \u1492  (\u1514 \u1494 \u1499 \u1497 \u1512 \u1497 \u1501 )",\
+                            "\uc0\u1511 \u1496 \u1490 \u1493 \u1512 \u1497 \u1492 ": ministry,\
+                            "\uc0\u1499 \u1493 \u1514 \u1512 \u1514 ": title,\
+                            "\uc0\u1514 \u1488 \u1512 \u1497 \u1498 ": publish_date[:10] if publish_date else "\u1500 \u1488  \u1510 \u1493 \u1497 \u1503 ",\
+                            "\uc0\u1506 \u1491 \u1497 \u1508 \u1493 \u1514 ": "\u55357 \u56613  \u1490 \u1489 \u1493 \u1492 \u1492 ",\
+                            "\uc0\u1511 \u1497 \u1513 \u1493 \u1512 ": f"https://www.tazkirim.gov.il/"\
+                        \})\
+                return tazkirim\
+            return []\
+        except:\
+            return []\
+\
+    # \uc0\u1490 . \u1512 \u1491 \u1488 \u1512  \u1495 \u1491 \u1513 \u1493 \u1514  (10 \u1488 \u1514 \u1512 \u1497 \u1501  \u1502 \u1489 \u1493 \u1505 \u1505 \u1497  RSS)\
+    def fetch_news_data():\
+        NEWS_FEEDS = \{\
+            "\uc0\u1506 \u1497 \u1514 \u1493 \u1503  \u1491 \u1489 \u1512  (\u1491 \u1489 \u1512  \u1492 \u1506 \u1493 \u1489 \u1491 \u1497 \u1501 )": "https://www.davar1.co.il/feed/",\
+            "\uc0\u1499 \u1500 \u1499 \u1500 \u1497 \u1505 \u1496 ": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml",\
+            "\uc0\u1490 \u1500 \u1493 \u1489 \u1505 ": "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2",\
+            "\uc0\u1491 \u1492  \u1502 \u1512 \u1511 \u1512 ": "https://www.themarker.com/srv/rss/all",\
+            "Ynet - \uc0\u1499 \u1500 \u1499 \u1500 \u1492 ": "https://www.ynet.co.il/Integration/StoryRss538.xml",\
+            "\uc0\u1502 \u1506 \u1512 \u1497 \u1489  - \u1502 \u1489 \u1494 \u1511 \u1497 \u1501 ": "https://www.maariv.co.il/Rss/RssFeedsMivzakim",\
+            "\uc0\u1502 \u1511 \u1493 \u1512  \u1512 \u1488 \u1513 \u1493 \u1503 ": "https://www.makorrishon.co.il/category/news/feed/",\
+            "\uc0\u1488 \u1514 \u1512  \u1499 \u1497 \u1508 \u1492 ": "https://www.kipa.co.il/rss/news.xml",\
+            "The Times of Israel": "https://www.timesofisrael.com/il/feed/",\
+            "The Jerusalem Post": "https://www.jpost.com/rss/israelnews"\
+        \}\
+        news_alerts = []\
+        for source_name, feed_url in NEWS_FEEDS.items():\
+            try:\
+                feed = feedparser.parse(feed_url)\
+                for entry in feed.entries[:15]:\
+                    title = entry.get('title', '')\
+                    summary = entry.get('summary', '') or entry.get('description', '') or ''\
+                    link = entry.get('link', '')\
+                    pub_date = entry.get('published', '') or entry.get('updated', '') or "\uc0\u1500 \u1488  \u1510 \u1493 \u1497 \u1503 "\
+                    \
+                    full_text_lower = f"\{title\} \{summary\}".lower()\
+                    match_he = any(word in full_text_lower for word in KEYWORDS)\
+                    match_en = any(word in full_text_lower for word in KEYWORDS_EN)\
+                    \
+                    if match_he or match_en:\
+                        if not any(alert['\uc0\u1511 \u1497 \u1513 \u1493 \u1512 '] == link for alert in news_alerts):\
+                            news_alerts.append(\{\
+                                "\uc0\u1502 \u1511 \u1493 \u1512 ": f"\u55357 \u56560  \{source_name\}",\
+                                "\uc0\u1511 \u1496 \u1490 \u1493 \u1512 \u1497 \u1492 ": "\u1502 \u1491 \u1497 \u1492  \u1493 \u1488 \u1511 \u1496 \u1493 \u1488 \u1500 \u1497 \u1492 ",\
+                                "\uc0\u1499 \u1493 \u1514 \u1512 \u1514 ": title,\
+                                "\uc0\u1514 \u1488 \u1512 \u1497 \u1498 ": pub_date[:16] if len(pub_date) > 16 else pub_date,\
+                                "\uc0\u1506 \u1491 \u1497 \u1508 \u1493 \u1514 ": "\u55357 \u56629  \u1502 \u1506 \u1511 \u1489  \u1502 \u1491 \u1497 \u1492 ",\
+                                "\uc0\u1511 \u1497 \u1513 \u1493 \u1512 ": link\
+                            \})\
+            except:\
+                continue\
+        return news_alerts\
+\
+    # ==========================================\
+    # 7. \uc0\u1489 \u1504 \u1497 \u1497 \u1514  \u1502 \u1502 \u1513 \u1511  \u1492 \u1502 \u1513 \u1514 \u1502 \u1513  (Tabs Layout)\
+    # ==========================================\
+    tab1, tab2, tab3 = st.tabs(["\uc0\u55356 \u57307 \u65039  \u1495 \u1511 \u1497 \u1511 \u1492  \u1493 \u1468 \u1493 \u1506 \u1491 \u1493 \u1514  (\u1488 \u1493 \u1496 \u1493 \u1502 \u1496 \u1497 )", "\u55357 \u56514  \u1505 \u1493 \u1512 \u1511  \u1502 \u1505 \u1502 \u1499 \u1497  \u1502 \u1502 \u1513 \u1500 \u1492  (PDF)", "\u55357 \u56560  \u1512 \u1491 \u1488 \u1512  \u1495 \u1491 \u1513 \u1493 \u1514  \u1495 \u1497 "])\
+\
+    # --- \uc0\u1496 \u1488 \u1489  1: \u1499 \u1504 \u1505 \u1514  \u1493 \u1495 \u1511 \u1497 \u1511 \u1492  \u1502 \u1502 \u1513 \u1500 \u1514 \u1497 \u1514  ---\
+    with tab1:\
+        st.markdown("### \uc0\u1492 \u1514 \u1512 \u1488 \u1493 \u1514  \u1512 \u1490 \u1493 \u1500 \u1496 \u1493 \u1512 \u1497 \u1493 \u1514  \u1489 \u1494 \u1502 \u1503  \u1488 \u1502 \u1514  \u1502 \u1492 \u1499 \u1504 \u1505 \u1514  \u1493 \u1492 \u1502 \u1502 \u1513 \u1500 \u1492 ")\
+        with st.spinner("\uc0\u1505 \u1493 \u1512 \u1511  \u1502 \u1488 \u1490 \u1512 \u1497 \u1501  \u1502 \u1502 \u1513 \u1500 \u1514 \u1497 \u1497 \u1501 ..."):\
+            gov_alerts = []\
+            gov_alerts.extend(fetch_knesset_data())\
+            gov_alerts.extend(fetch_tazkirim_data())\
+            \
+        if not gov_alerts:\
+            st.info("\uc0\u1500 \u1488  \u1504 \u1502 \u1510 \u1488 \u1493  \u1491 \u1497 \u1493 \u1504 \u1497 \u1501  \u1488 \u1493  \u1514 \u1494 \u1499 \u1497 \u1512 \u1497  \u1495 \u1493 \u1511  \u1511 \u1512 \u1493 \u1489 \u1497 \u1501  \u1492 \u1514 \u1493 \u1488 \u1502 \u1497 \u1501  \u1488 \u1514  \u1502 \u1497 \u1500 \u1493 \u1514  \u1492 \u1502 \u1508 \u1514 \u1495  \u1513 \u1500  \u1493 \u1493 \u1500 \u1496 .")\
+        else:\
+            for alert in gov_alerts:\
+                st.markdown(f"""\
+                    <div class="wolt-card">\
+                        <h4>\{alert['\uc0\u1502 \u1511 \u1493 \u1512 ']\} | \{alert['\u1511 \u1496 \u1490 \u1493 \u1512 \u1497 \u1492 ']\}</h4>\
+                        <p style="font-size: 16px; margin-bottom:5px;"><b>\uc0\u1504 \u1493 \u1513 \u1488 :</b> \{alert['\u1499 \u1493 \u1514 \u1512 \u1514 ']\}</p>\
+                        <p style="font-size: 13px; color: gray; margin:0;">\uc0\u1514 \u1488 \u1512 \u1497 \u1498 : \{alert['\u1514 \u1488 \u1512 \u1497 \u1498 ']\} | \u1506 \u1491 \u1497 \u1508 \u1493 \u1514 : \{alert['\u1506 \u1491 \u1497 \u1508 \u1493 \u1514 ']\}</p>\
+                    </div>\
+                """, unsafe_allow_index=True)\
+                st.markdown(f"[\uc0\u55357 \u56599  \u1500 \u1502 \u1506 \u1489 \u1512  \u1500 \u1502 \u1511 \u1493 \u1512  \u1500 \u1495 \u1509  \u1499 \u1488 \u1503 ](\{alert['\u1511 \u1497 \u1513 \u1493 \u1512 ']\})")\
+                with st.expander("\uc0\u55357 \u56589  \u1504 \u1497 \u1514 \u1493 \u1495  \u1502 \u1491 \u1497 \u1504 \u1497 \u1493 \u1514  \u1493 \u1492 \u1502 \u1500 \u1510 \u1493 \u1514  - Gemini AI"):\
+                    analysis = analyze_with_gemini(alert['\uc0\u1502 \u1511 \u1493 \u1512 '], alert['\u1511 \u1496 \u1490 \u1493 \u1512 \u1497 \u1492 '], alert['\u1499 \u1493 \u1514 \u1512 \u1514 '])\
+                    st.write(analysis)\
+                st.markdown("<br>", unsafe_allow_index=True)\
+\
+    # --- \uc0\u1496 \u1488 \u1489  2: \u1505 \u1493 \u1512 \u1511  PDF (\u1502 \u1494 \u1499 \u1497 \u1512 \u1493 \u1514  \u1492 \u1502 \u1502 \u1513 \u1500 \u1492 ) ---\
+    with tab2:\
+        st.markdown("### \uc0\u1505 \u1493 \u1512 \u1511  \u1492 \u1495 \u1500 \u1496 \u1493 \u1514  \u1502 \u1502 \u1513 \u1500 \u1492  \u1493 \u1493 \u1506 \u1491 \u1493 \u1514  \u1513 \u1512 \u1497 \u1501 ")\
+        st.write("\uc0\u1502 \u1494 \u1499 \u1497 \u1512 \u1493 \u1514  \u1492 \u1502 \u1502 \u1513 \u1500 \u1492  \u1502 \u1508 \u1512 \u1505 \u1502 \u1514  \u1511 \u1493 \u1489 \u1510 \u1497  PDF. \u1492 \u1506 \u1500 \u1492  \u1488 \u1493 \u1514 \u1501  \u1499 \u1488 \u1503  \u1500 \u1505 \u1512 \u1497 \u1511 \u1492  \u1493 \u1504 \u1497 \u1514 \u1493 \u1495  \u1502 \u1497 \u1497 \u1491 \u1497 :")\
+        uploaded_file = st.file_uploader("\uc0\u1490 \u1512 \u1493 \u1512  \u1488 \u1493  \u1489 \u1495 \u1512  \u1511 \u1493 \u1489 \u1509  PDF \u1513 \u1500  \u1492 \u1502 \u1502 \u1513 \u1500 \u1492 ", type=["pdf"])\
+        \
+        if uploaded_file is not None:\
+            with st.spinner("\uc0\u1492 -AI \u1511 \u1493 \u1512 \u1488  \u1493 \u1502 \u1504 \u1514 \u1495  \u1488 \u1514  \u1492 \u1502 \u1505 \u1502 \u1498 ..."):\
+                file_bytes = uploaded_file.read()\
+                prompt = f"\uc0\u1488 \u1514 \u1492  \u1502 \u1504 \u1492 \u1500  \u1502 \u1491 \u1497 \u1504 \u1497 \u1493 \u1514  \u1510 \u1497 \u1489 \u1493 \u1512 \u1497 \u1514  \u1489 \u1493 \u1493 \u1500 \u1496  \u1497 \u1513 \u1512 \u1488 \u1500 . \u1505 \u1512 \u1493 \u1511  \u1488 \u1514  \u1492 -PDF \u1492 \u1502 \u1510 \u1493 \u1512 \u1507  \u1493 \u1495 \u1508 \u1513  \u1505 \u1506 \u1497 \u1508 \u1497 \u1501  \u1513 \u1511 \u1513 \u1493 \u1512 \u1497 \u1501  \u1500 \u1502 \u1497 \u1500 \u1493 \u1514  \u1492 \u1502 \u1508 \u1514 \u1495 : \{', '.join(KEYWORDS)\}. \u1514 \u1503  \u1514 \u1511 \u1510 \u1497 \u1512  \u1489 \u1506 \u1489 \u1512 \u1497 \u1514  \u1513 \u1500  \u1505 \u1497 \u1499 \u1493 \u1504 \u1497 \u1501  \u1488 \u1493  \u1492 \u1494 \u1491 \u1502 \u1504 \u1493 \u1497 \u1493 \u1514  \u1500 \u1493 \u1493 \u1500 \u1496 ."\
+                try:\
+                    response = model.generate_content([\{"mime_type": "application/pdf", "data": file_bytes\}, prompt])\
+                    st.markdown(f'<div class="wolt-card" style="background-color: #e6f9fc;"><h4>\uc0\u55357 \u56523  \u1502 \u1502 \u1510 \u1488 \u1497  \u1505 \u1512 \u1497 \u1511 \u1514  \u1492 \u1502 \u1505 \u1502 \u1498 :</h4><p>\{response.text\}</p></div>', unsafe_allow_index=True)\
+                except Exception as e:\
+                    st.error(f"\uc0\u1513 \u1490 \u1497 \u1488 \u1492  \u1489 \u1504 \u1497 \u1514 \u1493 \u1495 : \{e\}")\
+\
+    # --- \uc0\u1496 \u1488 \u1489  3: \u1512 \u1491 \u1488 \u1512  \u1495 \u1491 \u1513 \u1493 \u1514  \u1488 \u1511 \u1496 \u1493 \u1488 \u1500 \u1497  ---\
+    with tab3:\
+        st.markdown("### \uc0\u1512 \u1491 \u1488 \u1512  \u1502 \u1491 \u1497 \u1504 \u1497 \u1493 \u1514  \u1489 \u1514 \u1511 \u1513 \u1493 \u1512 \u1514  \u1492 \u1497 \u1513 \u1512 \u1488 \u1500 \u1497 \u1514  \u1493 \u1492 \u1489 \u1497 \u1504 \u1500 \u1488 \u1493 \u1502 \u1497 \u1514 ")\
+        with st.spinner("\uc0\u1505 \u1493 \u1512 \u1511  \u1488 \u1514  10 \u1488 \u1514 \u1512 \u1497  \u1492 \u1495 \u1491 \u1513 \u1493 \u1514  \u1513 \u1492 \u1490 \u1491 \u1512 \u1514 ..."):\
+            news_alerts = fetch_news_data()\
+            \
+        if not news_alerts:\
+            st.info("\uc0\u1488 \u1497 \u1503  \u1499 \u1514 \u1489 \u1493 \u1514  \u1488 \u1511 \u1496 \u1493 \u1488 \u1500 \u1497 \u1493 \u1514  \u1495 \u1491 \u1513 \u1493 \u1514  \u1489 \u1504 \u1493 \u1513 \u1488 \u1497  \u1492 \u1500 \u1497 \u1489 \u1492  \u1513 \u1500  \u1493 \u1493 \u1500 \u1496  \u1489 \u1513 \u1506 \u1493 \u1514  \u1492 \u1488 \u1495 \u1512 \u1493 \u1504 \u1493 \u1514 .")\
+        else:\
+            for alert in news_alerts:\
+                st.markdown(f"""\
+                    <div class="wolt-card">\
+                        <h4>\{alert['\uc0\u1502 \u1511 \u1493 \u1512 ']\}</h4>\
+                        <p style="font-size: 16px; margin-bottom:5px;"><b>\uc0\u1499 \u1514 \u1489 \u1492 :</b> \{alert['\u1499 \u1493 \u1514 \u1512 \u1514 ']\}</p>\
+                        <p style="font-size: 13px; color: gray; margin:0;">\uc0\u1508 \u1493 \u1512 \u1505 \u1501 : \{alert['\u1514 \u1488 \u1512 \u1497 \u1498 ']\}</p>\
+                    </div>\
+                """, unsafe_allow_index=True)\
+                st.markdown(f"[\uc0\u55357 \u56599  \u1500 \u1511 \u1512 \u1497 \u1488 \u1514  \u1492 \u1499 \u1514 \u1489 \u1492  \u1492 \u1502 \u1500 \u1488 \u1492  \u1500 \u1495 \u1509  \u1499 \u1488 \u1503 ](\{alert['\u1511 \u1497 \u1513 \u1493 \u1512 ']\})")\
+                with st.expander("\uc0\u55357 \u56589  \u1504 \u1497 \u1514 \u1493 \u1495  \u1505 \u1508 \u1497 \u1503  \u1493 \u1492 \u1513 \u1508 \u1506 \u1492  \u1514 \u1511 \u1513 \u1493 \u1512 \u1514 \u1497 \u1514  - Gemini AI"):\
+                    analysis = analyze_with_gemini(alert['\uc0\u1502 \u1511 \u1493 \u1512 '], "\u1495 \u1491 \u1513 \u1493 \u1514  \u1493 \u1502 \u1491 \u1497 \u1492 ", alert['\u1499 \u1493 \u1514 \u1512 \u1514 '])\
+                    st.write(analysis)\
+                st.markdown("<br>", unsafe_allow_index=True)}
