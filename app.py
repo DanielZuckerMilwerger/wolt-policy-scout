@@ -50,16 +50,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# מבנה ראש האתר חסין-שגיאות: שימוש בסטרימליט מקורי עבור הלוגו כדי למנוע חסימות
-st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=130)
+# שימוש בלינק לוגו חלופי ויציב משרת פתוח שלא חוסם תמונות
+st.image("https://i.imgur.com/gK9887O.png", width=140)
 
-# כותרות מיושרות פיקס לימין
+# מבנה כותרות חדש - מוצמד לחלוטין לימין ללא Flexbox משבש
 st.markdown("""
-    <div style="text-align: right; margin-top: 10px;">
-        <h1 style="margin: 0; padding: 0; color: #00c2e8;">Public Policy Scout</h1>
-        <p style="margin: 5px 0 0 0; color: #808080; font-size: 16px; direction: rtl; text-align: right;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
+    <div style="direction: rtl; text-align: right; width: 100%; margin-top: 15px;">
+        <h1 style="margin: 0; padding: 0; color: #00c2e8; font-size: 42px;">Public Policy Scout</h1>
+        <p style="margin: 5px 0 0 0; color: #808080; font-size: 18px; font-weight: 500;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
     </div>
-    <hr style="border: 0; height: 2px; background: #00c2e8; margin-bottom: 30px; margin-top: 15px;">
+    <hr style="border: 0; height: 2px; background: #00c2e8; margin-bottom: 30px; margin-top: 20px;">
 """, unsafe_allow_html=True)
 
 # ==========================================
