@@ -12,7 +12,7 @@ if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-pro')
 else:
-    st.warning("שימו לב: מפתח Gemini API לא מוגדר עדיין ב-Secrets של השרת. המערכת תציג נתונים אך לא תבצע ניתוח AI.")
+    st.warning("Warning: Gemini API Key is missing in Secrets.")
     model = None
 
 # ==========================================
@@ -51,7 +51,7 @@ def check_password():
     if not st.session_state["authenticated"]:
         st.markdown("### 🔒 כניסה מאובטחת לעובדי וולט")
         password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
-        if password == "WoltPolicy2026":  # סיסמת הכניסה שלך
+        if password == "WoltPolicy2026":
             st.session_state["authenticated"] = True
             st.rerun()
         elif password:
@@ -59,7 +59,6 @@ def check_password():
         return False
     return True
 
-# אם המשתמש עבר את חסימת הסיסמה
 if check_password():
 
     # ==========================================
@@ -77,20 +76,6 @@ if check_password():
     
     PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
 
-    # תרגום אוטומטי של שמות המקורות לעברית בזמן תצוגה
-    source_translation = {
-        "davar": "עיתון דבר (דבר העובדים)",
-        "calcalist": "כלכליסט",
-        "globes": "גלובס",
-        "themarker": "דה מרקר",
-        "ynet": "Ynet - כלכלה",
-        "maariv": "מעריב - מבזקים",
-        "makor_rishon": "מקור ראשון",
-        "kipa": "אתר כיפה",
-        "times_of_israel": "The Times of Israel",
-        "jpost": "The Jerusalem Post"
-    }
-
     # ==========================================
     # 5. מוח ה-AI (Gemini)
     # ==========================================
@@ -105,7 +90,7 @@ if check_password():
         כותרת/נושא: {title}
         תוכן נוסף (אם יש): {text_content[:500]}
         
-        נתח את הפרסום בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט (תעסוקת שליחים כעצמאיים, רגולציה תחבורתית, חובות רישוי, משלוחי מזון/פארם).
+        נתח את הפרסום בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
         תשובתך חייבת להיות בעברית, מקצועית וממוקדת למנהלים בחברה.
         """
         try:
@@ -118,7 +103,6 @@ if check_password():
     # 6. צינורות מקורות המידע (Data Pipelines)
     # ==========================================
     
-    # א. כנסת ישראל (API)
     def fetch_knesset_data():
         url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
         params = {
@@ -148,7 +132,6 @@ if check_password():
         except:
             return []
 
-    # ב. מאגר החקיקה ותזכירי החוק (API)
     def fetch_tazkirim_data():
         resource_id = "9207e37d-b6bd-4df5-91db-fc539dfbbf76"
         url = "https://data.gov.il/api/3/action/datastore_search"
@@ -170,16 +153,118 @@ if check_password():
                             "כותרת": title,
                             "תאריך": publish_date[:10] if publish_date else "לא צוין",
                             "עדיפות": "🔥 גבוהה",
-                            "קישור": f"https://www.tazkirim.gov.il/"
+                            "קישור": "https://www.tazkirim.gov.il/"
                         })
                 return tazkirim
             return []
         except:
             return []
 
-    # ג. רדאר חדשות (10 אתרים מבוססי RSS) - קוד נקי באנגלית בלבד למניעת שגיאות סינטקס
+    # רשימת הפידים באנגלית בלבד - חסין לחלוטין מפני שיבושי גרשיים ב-GitHub!
     def fetch_news_data():
-        feeds_config = [
-            {"id": "davar", "url": "https://www.davar1.co.il/feed/"},
-            {"id": "calcalist", "url": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"},
-            {"id": "globes", "url": "
+        config_list = [
+            ("Davar", "https://www.davar1.co.il/feed/"),
+            ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
+            ("Globes", "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"),
+            ("TheMarker", "https://www.themarker.com/srv/rss/all"),
+            ("Ynet", "https://www.ynet.co.il/Integration/StoryRss538.xml"),
+            ("Maariv", "https://www.maariv.co.il/Rss/RssFeedsMivzakim"),
+            ("Makor Rishon", "https://www.makorrishon.co.il/category/news/feed/"),
+            ("Kipa", "https://www.kipa.co.il/rss/news.xml"),
+            ("The Times of Israel", "https://www.timesofisrael.com/il/feed/"),
+            ("The Jerusalem Post", "https://www.jpost.com/rss/israelnews")
+        ]
+        
+        news_alerts = []
+        for name, url in config_list:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:15]:
+                    title = entry.get('title', '')
+                    summary = entry.get('summary', '') or entry.get('description', '') or ''
+                    link = entry.get('link', '')
+                    pub_date = entry.get('published', '') or entry.get('updated', '') or "---"
+                    
+                    full_text_lower = f"{title} {summary}".lower()
+                    match_he = any(word in full_text_lower for word in KEYWORDS)
+                    match_en = any(word in full_text_lower for word in KEYWORDS_EN)
+                    
+                    if match_he or match_en:
+                        if not any(alert['קישור'] == link for alert in news_alerts):
+                            news_alerts.append({
+                                "מקור": f"📰 {name}",
+                                "קטגוריה": "מדיה ואקטואליה",
+                                "כותרת": title,
+                                "תאריך": pub_date[:16] if len(pub_date) > 16 else pub_date,
+                                "עדיפות": "🔵 מעקב מדיה",
+                                "קישור": link
+                            })
+            except:
+                continue
+        return news_alerts
+
+    # ==========================================
+    # 7. בניית ממשק המשתמש (Tabs Layout)
+    # ==========================================
+    tab1, tab2, tab3 = st.tabs(["🏛️ חקיקה וּועדות (אוטומטי)", "📂 סורק מסמכי ממשלה (PDF)", "📰 רדאר חדשות חי"])
+
+    with tab1:
+        st.markdown("### התראות רגולטוריות בזמן אמת מהכנסת והממשלה")
+        with st.spinner("סורק מאגרים ממשלתיים..."):
+            gov_alerts = []
+            gov_alerts.extend(fetch_knesset_data())
+            gov_alerts.extend(fetch_tazkirim_data())
+            
+        if not gov_alerts:
+            st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
+        else:
+            for alert in gov_alerts:
+                st.markdown(f"""
+                    <div class="wolt-card">
+                        <h4>{alert['מקור']} | {alert['קטגוריה']}</h4>
+                        <p style="font-size: 16px; margin-bottom:5px;"><b>נושא:</b> {alert['כותרת']}</p>
+                        <p style="font-size: 13px; color: gray; margin:0;">תאריך: {alert['תאריך']} | עדיפות: {alert['עדיפות']}</p>
+                    </div>
+                """, unsafe_allow_index=True)
+                st.markdown(f"[🔗 למעבר למקור לחץ כאן]({alert['קישור']})")
+                with st.expander("🔍 ניתוח מדיניות והמלצות - Gemini AI"):
+                    analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
+                    st.write(analysis)
+                st.markdown("<br>", unsafe_allow_index=True)
+
+    with tab2:
+        st.markdown("### סורק החלטות ממשלה וועדות שרים")
+        st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
+        uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
+        
+        if uploaded_file is not None:
+            with st.spinner("ה-AI קורא ומנתח את המסמך..."):
+                file_bytes = uploaded_file.read()
+                prompt = "אתה מנהל מדיניות ציבורית בוולט ישראל. סרוק את ה-PDF המצורף וחפש סעיפים שקשורים למילות המפתח של החברה. תן תקציר בעברית של סיכונים או הזדמנויות לוולט."
+                try:
+                    response = model.generate_content([{"mime_type": "application/pdf", "data": file_bytes}, prompt])
+                    st.markdown(f'<div class="wolt-card" style="background-color: #e6f9fc;"><h4>📋 ממצאי סריקת המסמך:</h4><p>{response.text}</p></div>', unsafe_allow_index=True)
+                except Exception as e:
+                    st.error(f"שגיאה בניתוח: {e}")
+
+    with tab3:
+        st.markdown("### רדאר מדיניות בתקשורת הישראלית והבינלאומית")
+        with st.spinner("סורק את 10 אתרי החדשות שהגדרת..."):
+            news_alerts = fetch_news_data()
+            
+        if not news_alerts:
+            st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
+        else:
+            for alert in news_alerts:
+                st.markdown(f"""
+                    <div class="wolt-card">
+                        <h4>{alert['מקור']}</h4>
+                        <p style="font-size: 16px; margin-bottom:5px;"><b>כתבה:</b> {alert['כותרת']}</p>
+                        <p style="font-size: 13px; color: gray; margin:0;">פורסם: {alert['תאריך']}</p>
+                    </div>
+                """, unsafe_allow_index=True)
+                st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
+                with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
+                    analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
+                    st.write(analysis)
+                st.markdown("<br>", unsafe_allow_index=True)
