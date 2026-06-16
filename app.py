@@ -16,20 +16,14 @@ else:
     model = None
 
 # ==========================================
-# 2. כותרת ומיתוג מותאם אישית (Wolt Style)
+# 2. כותרת ומיתוג (Wolt Israel) - ללא HTML
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
 
-# שימוש בתיבת קולונה כדי למרכז ולעצב את הלוגו והכותרת בצורה נקייה
-col_logo, col_title = st.columns([1, 5])
-with col_logo:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=110)
-with col_title:
-    # שימוש בצירוף HTML פשוט בצבע כחול וולט רשמי (#00c2e8) שהשרת מקבל באהבה
-    st.markdown("<h1 style='color: #00c2e8; margin-top: 0;'>Wolt Israel</h1>", unsafe_allow_index=True)
-    st.markdown("<h3 style='color: #202125; margin-top: -15px;'>Public Policy Scout 🌐</h3>", unsafe_allow_index=True)
-
-st.markdown("<hr style='border: 1px solid #00c2e8;'>", unsafe_allow_index=True)
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=120)
+st.title("Wolt Israel")
+st.subheader("Public Policy Scout 🌐 (מערכת ניטור סיכונים והזדמנויות)")
+st.markdown("---")
 
 # ==========================================
 # 3. מנגנון בקרת כניסה (הגנת סיסמה)
@@ -64,7 +58,7 @@ if check_password():
         "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"
     ]
     
-    # רשימת מילות מפתח שליליות כדי לסנן רעשים (כמו התן בכנרת)
+    # סינון רעשים מבוסס מילים שליליות
     NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
     
     PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
@@ -178,12 +172,8 @@ if check_password():
                     pub_date = entry.get('published', '') or entry.get('updated', '') or "---"
                     
                     full_text_lower = f"{title} {summary}".lower()
-                    
-                    # בדיקה האם יש מילת מפתח חיובית
                     match_he = any(word in full_text_lower for word in KEYWORDS)
                     match_en = any(word in full_text_lower for word in KEYWORDS_EN)
-                    
-                    # בדיקה האם יש מילת מפתח שלילית (מנגנון סינון הרעשים החדש)
                     has_negative = any(neg_word in full_text_lower for neg_word in NEGATIVE_KEYWORDS)
                     
                     if (match_he or match_en) and not has_negative:
@@ -207,7 +197,7 @@ if check_password():
 
     # טאב 1: כנסת וחקיקה
     with tab1:
-        st.markdown("<h4 style='color: #00c2e8;'>📍 עדכוני כנסת ישראל ומאגר החקיקה הלאומי</h4>", unsafe_allow_index=True)
+        st.write("### 📍 עדכוני כנסת ישראל ומאגר החקיקה הלאומי")
         with st.spinner("סורק מאגרים ממשלתיים..."):
             gov_alerts = []
             gov_alerts.extend(fetch_knesset_data())
@@ -217,22 +207,20 @@ if check_password():
             st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
-                # יצירת כרטיסיה מעוצבת באמצעות אלמנט מובנה של סטרימליט שצבוע בכחול בהיר
-                with st.chat_message("assistant", avatar="🏛️"):
-                    st.markdown(f"### {alert['מקור']} | {alert['קטגוריה']}")
-                    st.markdown(f"**נושא הדיון/החוק:** \n ### {alert['כותרת']}")
-                    st.markdown(f"📅 **תאריך:** {alert['תאריך']} | 📊 **עדיפות:** {alert['עדיפות']}")
+                # שימוש בתיבה מובנית חסינת-שגיאות עם מסגרת נקייה
+                with st.container(border=True):
+                    st.write(f"### {alert['מקור']} | {alert['קטגוריה']}")
+                    st.info(f"**נושא:** {alert['כותרת']}")
+                    st.write(f"📅 תאריך: {alert['תאריך']} | 📊 עדיפות: {alert['עדיפות']}")
                     st.markdown(f"[🔗 למעבר למקור הדיון לחץ כאן]({alert['קישור']})")
                     
-                    # פתיחת ה-AI
                     with st.expander("🔍 ניתוח מדיניות והמלצות - Gemini AI"):
                         analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
                         st.write(analysis)
-                st.markdown("---")
 
     # טאב 2: סורק PDF
     with tab2:
-        st.markdown("<h4 style='color: #00c2e8;'>📍 סורק החלטות ממשלה וועדות שרים (PDF)</h4>", unsafe_allow_index=True)
+        st.write("### 📍 סורק החלטות ממשלה וועדות שרים (PDF)")
         st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
         uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
         
@@ -248,7 +236,7 @@ if check_password():
 
     # טאב 3: רדאר חדשות
     with tab3:
-        st.markdown("<h4 style='color: #00c2e8;'>📍 רדאר מדיניות בתקשורת הישראלית והבינלאומית</h4>", unsafe_allow_index=True)
+        st.write("### 📍 רדאר מדיניות בתקשורת הישראלית והבינלאומית")
         with st.spinner("סורק את 10 אתרי החדשות שהגדרת..."):
             news_alerts = fetch_news_data()
             
@@ -256,14 +244,12 @@ if check_password():
             st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
         else:
             for alert in news_alerts:
-                # כרטיסיית חדשות ממותגת
-                with st.chat_message("user", avatar="📰"):
-                    st.markdown(f"### {alert['מקור']}")
-                    st.markdown(f"**כותרת הכתבה:** \n ### {alert['כותרת']}")
-                    st.markdown(f"📅 **פורסם בתאריך:** {alert['תאריך']}")
+                with st.container(border=True):
+                    st.write(f"### {alert['מקור']}")
+                    st.warning(f"**כתבה:** {alert['כותרת']}")
+                    st.write(f"📅 פורסם בתאריך: {alert['תאריך']}")
                     st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
                     
                     with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
                         analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
                         st.write(analysis)
-                st.markdown("---")
