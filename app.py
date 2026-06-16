@@ -77,6 +77,20 @@ if check_password():
     
     PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
 
+    # תרגום אוטומטי של שמות המקורות לעברית בזמן תצוגה
+    source_translation = {
+        "davar": "עיתון דבר (דבר העובדים)",
+        "calcalist": "כלכליסט",
+        "globes": "גלובס",
+        "themarker": "דה מרקר",
+        "ynet": "Ynet - כלכלה",
+        "maariv": "מעריב - מבזקים",
+        "makor_rishon": "מקור ראשון",
+        "kipa": "אתר כיפה",
+        "times_of_israel": "The Times of Israel",
+        "jpost": "The Jerusalem Post"
+    }
+
     # ==========================================
     # 5. מוח ה-AI (Gemini)
     # ==========================================
@@ -163,13 +177,9 @@ if check_password():
         except:
             return []
 
-    # ג. רדאר חדשות (10 אתרים מבוססי RSS) - נכתב משמאל לימין למניעת שגיאות RTL
+    # ג. רדאר חדשות (10 אתרים מבוססי RSS) - קוד נקי באנגלית בלבד למניעת שגיאות סינטקס
     def fetch_news_data():
         feeds_config = [
-            {"name": "עיתון דבר", "url": "https://www.davar1.co.il/feed/"},
-            {"name": "כלכליסט", "url": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"},
-            {"name": "גלובס", "url": "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"},
-            {"name": "דה מרקר", "url": "https://www.themarker.com/srv/rss/all"},
-            {"name": "Ynet - כלכלה", "url": "https://www.ynet.co.il/Integration/StoryRss538.xml"},
-            {"name": "מעריב - מבזקים", "url": "https://www.maariv.co.il/Rss/RssFeedsMivzakim"},
-            {"name": "מקור ראשון", "url": "https://www.makorrishon.
+            {"id": "davar", "url": "https://www.davar1.co.il/feed/"},
+            {"id": "calcalist", "url": "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"},
+            {"id": "globes", "url": "
