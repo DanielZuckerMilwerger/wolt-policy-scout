@@ -57,24 +57,21 @@ if check_password():
     ]
     
     NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
-    
     PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
 
     # ==========================================
     # 5. מוח ה-AI (Gemini)
     # ==========================================
-    def analyze_with_gemini(source, category, title, text_content=""):
+    def analyze_with_gemini(source, category, title):
         if not model:
             return "ניתוח ה-AI אינו זמין מכיוון שמפתח ה-API לא הוגדר ב-Secrets."
             
         prompt = f"""
-        אתה מנהל מדיניות ציבורית בכיר ויועץ רגולטורי של חברת וולט (Wolt) ישראל.
-        להלן פרסום/ידיעה חדשה מהרשת או מהממשלה:
+        אתה מנהל מדיניות ציבורית בכיר בוולט (Wolt) ישראל.
+        נתח את הפרסום הבא בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
         מקור: {source} ({category})
-        כותרת/נושא: {title}
-        
-        נתח את הפרסום בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
-        תשובתך חייבת להיות בעברית, מקצועית וממוקדת למנהלים בחברה.
+        נושא: {title}
+        תשובתך חייבת להיות בעברית מקצועית.
         """
         try:
             response = model.generate_content(prompt)
@@ -140,10 +137,5 @@ if check_password():
         return tazkirim
 
     def fetch_news_data():
-        config_list = [
-            ("Davar", "https://www.davar1.co.il/feed/"),
-            ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
-            ("Globes", "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"),
-            ("TheMarker", "https://www.themarker.com/srv/rss/all"),
-            ("Ynet", "https://www.ynet.co.il/Integration/StoryRss538.xml"),
-            ("Maariv", "https://www.maariv.co.il/Rss/RssFeedsMivzakim"),
+        # מבנה שטוח וקצר של הפידים למניעת שגיאות חיתוך וגרשיים ב-GitHub
+        feeds =
