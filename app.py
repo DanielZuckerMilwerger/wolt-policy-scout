@@ -113,7 +113,7 @@ if check_password():
                     committee = item.get('CommitteeName', 'ועדה כללית')
                     if any(word in title for word in KEYWORDS):
                         events.append({
-                            "מקור": "🏛️ כנת ישראל",
+                            "מקור": "🏛️ כנסת ישראל",
                             "קטגוריה": committee,
                             "כותרת": title,
                             "תאריך": datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S').strftime('%d/%m/%Y %H:%M'),
@@ -150,13 +150,101 @@ if check_password():
             pass
         return tazkirim
 
+    # פונקציית עזר פשוטה וישרה לעיבוד פריט בודד בפיד, חסינה לחלוטין לגרשיים!
+    def process_entry(name, entry):
+        title = entry.get('title', '')
+        summary = entry.get('summary', '') or entry.get('description', '') or ''
+        link = entry.get('link', '')
+        # תיקון השורה שקרסה: ניקוי הסוגריים והפיכתה לישרה.
+        pub_date_str = entry.get('published', '') or entry.get('updated', '')
+        
+        full_text = f"{title} {summary}".lower()
+        match_he = any(word in full_text for word in KEYWORDS)
+        match_en = any(word in full_text for word in KEYWORDS_EN)
+        negative = any(word in full_text for word in NEGATIVE_KEYWORDS)
+        
+        if (match_he or match_en) and not negative:
+            return {
+                "מקור": name,
+                "קטגוריה": "מדיה ואקטואליה",
+                "כותרת": title,
+                "תאריך": pub_date_str[:16],
+                "עדיפות": "🔵 מעקב מדיה",
+                "קישור": link
+            }
+        return None
+
     def fetch_news_data():
         news_alerts = []
-        for name, url in NEWS_FEEDS:
-            try:
+        try:
+            for name, url in NEWS_FEEDS:
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:10]:
-                    title = entry.get('title', '')
-                    summary = entry.get('summary', '') or entry.get('description', '') or ''
-                    link = entry.get('link', '')
-                    pub_date = entry.get('published', '') or entry.get('updated', '')
+                for entry in feed.entries[:12]:
+                    processed = process_entry(name, entry)
+                    if processed:
+                        # בדיקת כפילויות לינקים
+                        if not any(alert['קישור'] == processed['קישור'] for alert in news_alerts):
+                            news_alerts.append(processed)
+        except:
+            pass
+        return news_alerts
+
+    # ==========================================
+    # 7. בניית ממשק המשתמש (Tabs Layout)
+    # ==========================================
+    tab1, tab2, tab3 = st.tabs(["🏛️ חקיקה וּועדות", "📂 סורק מסמכים (PDF)", "📰 רדאר חדשות"])
+
+    with tab1:
+        st.write("### 🏛️ עדכוני כנסת ישראל ומאגר החקיקה הלאומי")
+        with st.spinner("סורק מאגרים ממשלתיים..."):
+            gov_alerts = []
+            gov_alerts.extend(fetch_knesset_data())
+            gov_alerts.extend(fetch_tazkirim_data())
+            
+        if not gov_alerts:
+            st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
+        else:
+            for alert in gov_alerts:
+                with st.container(border=True):
+                    st.write(f"### {alert['מקור']} | {alert['קטגוריה']}")
+                    st.info(f"**נושא הדיון:** {alert['כותרת']}")
+                    st.write(f"📅 תאריך: {alert['תאריך']} | 📊 עדיפות: {alert['עדיפות']}")
+                    st.markdown(f"[🔗 למעבר למקור הדיון לחץ כאן]({alert['קישור']})")
+                    
+                    with st.expander("🔍 ניתוח מדיניות - Gemini AI"):
+                        analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
+                        st.write(analysis)
+
+    with tab2:
+        st.write("### 📂 סורק החלטות ממשלה וועדות שרים (PDF)")
+        st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
+        uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
+        
+        if uploaded_file is not None:
+            with st.spinner("ה-AI קורא ומנתח את המסמך..."):
+                file_bytes = uploaded_file.read()
+                prompt = "אתה מנהל מדיניות ציבורית בוולט ישראל. סרוק את ה-PDF המצורף וחפש סעיפים שקשורים למילות המפתח של החברה. תן תקציר בעברית של סיכונים או הזדמנויות לוולט."
+                try:
+                    response = model.generate_content([{"mime_type": "application/pdf", "data": file_bytes}, prompt])
+                    st.success(response.text)
+                except Exception as e:
+                    st.error(f"שגיאה בניתוח: {e}")
+
+    with tab3:
+        st.write("### 📰 רדאר מדיניות בתקשורת הישראלית")
+        with st.spinner("סורק את אתרי החדשות..."):
+            news_alerts = fetch_news_data()
+            
+        if not news_alerts:
+            st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
+        else:
+            for alert in news_alerts:
+                with st.container(border=True):
+                    st.write(f"### 📰 {alert['מקור']}")
+                    st.warning(f"**כתבה:** {alert['כותרת']}")
+                    st.write(f"📅 פורסם בתאריך: {alert['תאריך']}")
+                    st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
+                    
+                    with st.expander("🔍 ניתוח ספין תקשורתי - Gemini AI"):
+                        analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
+                        st.write(analysis)
