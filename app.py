@@ -50,10 +50,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# שימוש בלינק לוגו חלופי ויציב משרת פתוח שלא חוסם תמונות
-st.image("https://i.imgur.com/gK9887O.png", width=140)
+# שימוש בלינק לוגו מאובטח ויציב משרתי ויקימדיה הציבוריים - לא נחסם לעולם!
+st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Wolt_logo.svg", width=140)
 
-# מבנה כותרות חדש - מוצמד לחלוטין לימין ללא Flexbox משבש
+# מבנה כותרות חדש ומיושר פיקס לימין
 st.markdown("""
     <div style="direction: rtl; text-align: right; width: 100%; margin-top: 15px;">
         <h1 style="margin: 0; padding: 0; color: #00c2e8; font-size: 42px;">Public Policy Scout</h1>
@@ -240,7 +240,7 @@ if check_password():
             gov_alerts.extend(fetch_tazkirim_data())
             
         if not gov_alerts:
-            st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
+            st.info("לאמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
                 st.markdown(f"""
