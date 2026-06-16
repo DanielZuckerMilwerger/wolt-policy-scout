@@ -50,12 +50,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# שימוש בלינק לוגו מאובטח ויציב משרתי ויקימדיה הציבוריים - לא נחסם לעולם!
-st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Wolt_logo.svg", width=140)
+# לוגו Wolt רשמי ושלם - מוטמע ישירות כקוד וקטורי (SVG) פנימי. חסין חסימות אינטרנט לנצח!
+wolt_svg_logo = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115.4 34.2" width="140" style="margin-bottom: 10px; display: block; float: right;">
+    <path fill="#00c2e8" d="M14.3 33.6c-3.1 0-5.7-.9-7.7-2.6C4.6 29.3 3.5 26.7 3.5 23V.7h5.7V23c0 2.2.6 3.8 1.7 4.7s2.7 1.4 4.7 1.4c1.9 0 3.4-.5 4.5-1.4s1.7-2.5 1.7-4.7V.7h5.7V23c0 3.7-1.1 6.3-3.2 8-2.1 1.7-4.9 2.6-8 2.6zM46.7 34.2c-4.1 0-7.4-1.3-9.9-3.9-2.5-2.6-3.7-6.2-3.7-10.7s1.2-8.1 3.7-10.7c2.5-2.6 5.8-3.9 9.9-3.9s7.4 1.3 9.9 3.9c2.5 2.6 3.7 6.2 3.7 10.7s-1.2 8.1-3.7 10.7c-2.5 2.6-5.8 3.9-9.9 3.9zm0-5c2.3 0 4.2-.8 5.6-2.5s2.1-4.2 2.1-7.1-.7-5.4-2.1-7.1-3.3-2.5-5.6-2.5-4.2.8-5.6 2.5-2.1 4.2-2.1 7.1.7 5.4 2.1 7.1 3.3 2.5 5.6 2.5zM67.7 33.5V.7h5.7v32.8h-5.7zM86.4 29c1.9 0 3.3-.5 4.3-1.4 1-.9 1.5-2.4 1.5-4.4V10.2h5.7V23c0 3.6-1.1 6.3-3.2 8-2.1 1.7-4.9 2.6-8.3 2.6-3.2 0-5.8-.9-7.8-2.6-2-1.7-3-4.4-3-8V.7h5.7V23c0 2 .5 3.5 1.5 4.4s2.3 1.6 3.6 1.6zm1-23.7V.7h5.7v4.6h-5.7z"/>
+</svg>
+"""
 
-# מבנה כותרות חדש ומיושר פיקס לימין
+# הזרקת הלוגו והכותרות המיושרות פיקס לימין
+st.markdown(wolt_svg_logo, unsafe_allow_html=True)
+
 st.markdown("""
-    <div style="direction: rtl; text-align: right; width: 100%; margin-top: 15px;">
+    <div style="direction: rtl; text-align: right; width: 100%; clear: both; padding-top: 10px;">
         <h1 style="margin: 0; padding: 0; color: #00c2e8; font-size: 42px;">Public Policy Scout</h1>
         <p style="margin: 5px 0 0 0; color: #808080; font-size: 18px; font-weight: 500;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
     </div>
@@ -240,7 +246,7 @@ if check_password():
             gov_alerts.extend(fetch_tazkirim_data())
             
         if not gov_alerts:
-            st.info("לאמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
+            st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
                 st.markdown(f"""
