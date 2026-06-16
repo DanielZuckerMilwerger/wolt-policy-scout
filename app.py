@@ -87,16 +87,63 @@ if check_password():
     # ==========================================
     
     def fetch_knesset_data():
-        url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
-        params = {
-            '$filter': "StartDate ge datetime'" + datetime.now().strftime('%Y-%m-%dT00:00:00') + "'",
-            '$orderby': "StartDate asc",
-            '$format': "json"
-        }
+        events = []
         try:
+            url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
+            params = {
+                '$filter': "StartDate ge datetime'" + datetime.now().strftime('%Y-%m-%dT00:00:00') + "'",
+                '$orderby': "StartDate asc",
+                '$format': "json"
+            }
             response = requests.get(url, params=params)
             if response.status_code == 200:
-                events = []
                 for item in response.json().get('value', []):
                     title = item.get('CommitteeSessionName', '') or item.get('Subject', '') or ''
                     committee = item.get('CommitteeName', 'ועדה כללית')
+                    if any(word in title for word in KEYWORDS):
+                        events.append({
+                            "מקור": "🏛️ כנסת ישראל",
+                            "קטגוריה": committee,
+                            "כותרת": title,
+                            "תאריך": datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S').strftime('%d/%m/%Y %H:%M'),
+                            "עדיפות": "🔥 גבוהה" if committee in PRIORITY_COMMITTEES else "🔵 רגילה",
+                            "קישור": "https://main.knesset.gov.il/Activity/committees/Pages/AllCommitteesAgendas.aspx"
+                        })
+        except:
+            pass
+        return events
+
+    def fetch_tazkirim_data():
+        tazkirim = []
+        try:
+            resource_id = "9207e37d-b6bd-4df5-91db-fc539dfbbf76"
+            url = "https://data.gov.il/api/3/action/datastore_search"
+            params = {'resource_id': resource_id, 'limit': 40, 'sort': 'PublishDate desc'}
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                records = response.json().get('result', {}).get('records', [])
+                for item in records:
+                    title = item.get('TazkirName', '') or item.get('Subject', '') or ''
+                    ministry = item.get('PublishingMinistry', 'משרד ממשלתי')
+                    publish_date = item.get('PublishDate', '')
+                    if any(word in title for word in KEYWORDS):
+                        tazkirim.append({
+                            "מקור": "📜 מאגר החקיקה (תזכירים)",
+                            "קטגוריה": ministry,
+                            "כותרת": title,
+                            "תאריך": publish_date[:10] if publish_date else "לא צוין",
+                            "עדיפות": "🔥 גבוהה",
+                            "קישור": "https://www.tazkirim.gov.il/"
+                        })
+        except:
+            pass
+        return tazkirim
+
+    def fetch_news_data():
+        config_list = [
+            ("Davar", "https://www.davar1.co.il/feed/"),
+            ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
+            ("Globes", "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"),
+            ("TheMarker", "https://www.themarker.com/srv/rss/all"),
+            ("Ynet", "https://www.ynet.co.il/Integration/StoryRss538.xml"),
+            ("Maariv", "https://www.maariv.co.il/Rss/RssFeedsMivzakim"),
