@@ -16,14 +16,52 @@ else:
     model = None
 
 # ==========================================
-# 2. כותרת ומיתוג (Wolt Israel) - ללא HTML
+# 2. עיצוב ומיתוג סופר-וולטי (Custom CSS)
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
 
-st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=120)
-st.title("Wolt Israel")
-st.subheader("Public Policy Scout 🌐 (מערכת ניטור סיכונים והזדמנויות)")
-st.markdown("---")
+# הזרקת ה-CSS עם הפרמטר הנכון - unsafe_allow_html=True!
+st.markdown("""
+    <style>
+    /* עיצוב כללי ויישור לעברית */
+    .stApp { direction: rtl; text-align: right; background-color: #ffffff; color: #202125; }
+    
+    /* כותרות בצבע תכלת וולט רשמי */
+    h1, h2, h3 { color: #00c2e8 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 800; }
+    
+    /* עיצוב כרטיסיות המידע של וולט */
+    .wolt-card {
+        background-color: #f3fafd;
+        border-right: 6px solid #00c2e8;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        text-align: right;
+    }
+    .wolt-card h4 { color: #00c2e8 !important; margin-top: 0; font-size: 18px; }
+    .wolt-card p { font-size: 15px; color: #202125; line-height: 1.6; }
+    
+    /* כפתורים ולינקים */
+    a { color: #00c2e8 !important; text-decoration: none; font-weight: bold; }
+    a:hover { text-decoration: underline; }
+    
+    /* יישור שדות קלט */
+    .stTextInput, .stFileUploader { direction: rtl; text-align: right; }
+    </style>
+""", unsafe_allow_html=True)
+
+# מבנה ראש האתר: לוגו מיושר וכותרת מותאמת
+st.markdown("""
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png" style="width: 120px; margin-left: 20px;">
+        <div>
+            <h1 style="margin: 0; padding: 0;">Public Policy Scout</h1>
+            <p style="margin: 0; color: #808080; font-size: 16px;">מערכת ארגונית חכמה לניטור סיכונים והזדמנויות רגולטוריות בישראל</p>
+        </div>
+    </div>
+    <hr style="border: 0; height: 2px; background: #00c2e8; margin-bottom: 30px;">
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 3. מנגנון בקרת כניסה (הגנת סיסמה)
@@ -58,7 +96,6 @@ if check_password():
         "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"
     ]
     
-    # סינון רעשים מבוסס מילים שליליות
     NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
     
     PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
@@ -179,7 +216,7 @@ if check_password():
                     if (match_he or match_en) and not has_negative:
                         if not any(alert['קישור'] == link for alert in news_alerts):
                             news_alerts.append({
-                                "מקור": f"📰 {name}",
+                                "מקור": f"{name}",
                                 "קטגוריה": "מדיה ואקטואליה",
                                 "כותרת": title,
                                 "תאריך": pub_date[:16] if len(pub_date) > 16 else pub_date,
@@ -197,7 +234,7 @@ if check_password():
 
     # טאב 1: כנסת וחקיקה
     with tab1:
-        st.write("### 📍 עדכוני כנסת ישראל ומאגר החקיקה הלאומי")
+        st.write("### 🏛️ עדכוני כנסת ישראל ומאגר החקיקה הלאומי")
         with st.spinner("סורק מאגרים ממשלתיים..."):
             gov_alerts = []
             gov_alerts.extend(fetch_knesset_data())
@@ -207,20 +244,24 @@ if check_password():
             st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
-                # שימוש בתיבה מובנית חסינת-שגיאות עם מסגרת נקייה
-                with st.container(border=True):
-                    st.write(f"### {alert['מקור']} | {alert['קטגוריה']}")
-                    st.info(f"**נושא:** {alert['כותרת']}")
-                    st.write(f"📅 תאריך: {alert['תאריך']} | 📊 עדיפות: {alert['עדיפות']}")
-                    st.markdown(f"[🔗 למעבר למקור הדיון לחץ כאן]({alert['קישור']})")
-                    
-                    with st.expander("🔍 ניתוח מדיניות והמלצות - Gemini AI"):
-                        analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
-                        st.write(analysis)
+                # הזרקת כרטיסייה מעוצבת ומיושרת כמו שצריך בעברית
+                st.markdown(f"""
+                    <div class="wolt-card">
+                        <h4>{alert['מקור']} | {alert['קטגוריה']}</h4>
+                        <p><b>נושא הדיון:</b> {alert['כותרת']}</p>
+                        <p style="font-size: 13px; color: #606060; margin-bottom: 10px;">📅 תאריך: {alert['תאריך']} | 📊 עדיפות: {alert['עדיפות']}</p>
+                        <a href="{alert['קישור']}" target="_blank">🔗 למעבר למקור הדיון לחץ כאן</a>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                with st.expander("🔍 ניתוח מדיניות והמלצות - Gemini AI"):
+                    analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
+                    st.write(analysis)
+                st.markdown("<br>", unsafe_allow_html=True)
 
     # טאב 2: סורק PDF
     with tab2:
-        st.write("### 📍 סורק החלטות ממשלה וועדות שרים (PDF)")
+        st.write("### 📂 סורק החלטות ממשלה וועדות שרים (PDF)")
         st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
         uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
         
@@ -236,20 +277,25 @@ if check_password():
 
     # טאב 3: רדאר חדשות
     with tab3:
-        st.write("### 📍 רדאר מדיניות בתקשורת הישראלית והבינלאומית")
-        with st.spinner("סורק את 10 אתרי החדשות שהגדרת..."):
+        st.write("### 📰 רדאר מדיניות בתקשורת הישראלית")
+        with st.spinner("סורק את אתרי החדשות..."):
             news_alerts = fetch_news_data()
             
         if not news_alerts:
             st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
         else:
             for alert in news_alerts:
-                with st.container(border=True):
-                    st.write(f"### {alert['מקור']}")
-                    st.warning(f"**כתבה:** {alert['כותרת']}")
-                    st.write(f"📅 פורסם בתאריך: {alert['תאריך']}")
-                    st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
-                    
-                    with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
-                        analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
-                        st.write(analysis)
+                # כרטיסיית חדשות כחולה ומעוצבת
+                st.markdown(f"""
+                    <div class="wolt-card">
+                        <h4>📰 {alert['מקור']}</h4>
+                        <p><b>כותרת הכתבה:</b> {alert['כותרת']}</p>
+                        <p style="font-size: 13px; color: #606060; margin-bottom: 10px;">📅 פורסם בתאריך: {alert['תאריך']}</p>
+                        <a href="{alert['קישור']}" target="_blank">🔗 לקריאת הכתבה המלאה לחץ כאן</a>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
+                    analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
+                    st.write(analysis)
+                st.markdown("<br>", unsafe_allow_index=False) # חסין
