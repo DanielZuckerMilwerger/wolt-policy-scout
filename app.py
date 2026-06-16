@@ -16,30 +16,15 @@ else:
     model = None
 
 # ==========================================
-# 2. עיצוב ומיתוג (Wolt Blue & Styling)
+# 2. כותרת ומיתוג (Wolt Israel)
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide")
 
-st.markdown("""
-    <style>
-    .stApp { direction: rtl; text-align: right; color: #202125; }
-    h1, h2, h3, h4 { color: #00c2e8 !important; font-family: 'Segoe UI', sans-serif; }
-    .wolt-card {
-        border-right: 5px solid #00c2e8;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        text-align: right;
-    }
-    .stTextInput, .stFileUploader { direction: rtl; text-align: right; }
-    </style>
-""", unsafe_allow_index=True)
-
-# כותרת האתר ולוגו
+# לוגו וכותרת כחולה בשיטה פשוטה וחסינת שגיאות
 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Wolt_logo.svg/512px-Wolt_logo.svg.png", width=120)
 st.title("Wolt Israel - Public Policy Scout")
 st.subheader("מערכת ארגונית לניטור סיכונים והזדמנויות רגולטוריות")
+st.markdown("---")
 
 # ==========================================
 # 3. מנגנון בקרת כניסה (הגנת סיסמה)
@@ -49,7 +34,7 @@ def check_password():
         st.session_state["authenticated"] = False
     
     if not st.session_state["authenticated"]:
-        st.markdown("### 🔒 כניסה מאובטחת לעובדי וולט")
+        st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
         password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
         if password == "WoltPolicy2026":
             st.session_state["authenticated"] = True
@@ -81,7 +66,7 @@ if check_password():
     # ==========================================
     def analyze_with_gemini(source, category, title, text_content=""):
         if not model:
-            return "ניתוח ה-AI אינו זמין מכיוון שמפתח ה-API לא הוגדר."
+            return "ניתוח ה-AI אינו זמין מכיוון שמפתח ה-API לא הוגדר ב-Secrets."
             
         prompt = f"""
         אתה מנהל מדיניות ציבורית בכיר ויועץ רגולטורי של חברת וולט (Wolt) ישראל.
@@ -160,7 +145,6 @@ if check_password():
         except:
             return []
 
-    # רשימת הפידים באנגלית בלבד - חסין לחלוטין מפני שיבושי גרשיים ב-GitHub!
     def fetch_news_data():
         config_list = [
             ("Davar", "https://www.davar1.co.il/feed/"),
@@ -208,6 +192,7 @@ if check_password():
     # ==========================================
     tab1, tab2, tab3 = st.tabs(["🏛️ חקיקה וּועדות (אוטומטי)", "📂 סורק מסמכי ממשלה (PDF)", "📰 רדאר חדשות חי"])
 
+    # טאב 1
     with tab1:
         st.markdown("### התראות רגולטוריות בזמן אמת מהכנסת והממשלה")
         with st.spinner("סורק מאגרים ממשלתיים..."):
@@ -219,19 +204,14 @@ if check_password():
             st.info("לא נמצאו דיונים או תזכירי חוק קרובים התואמים את מילות המפתח של וולט.")
         else:
             for alert in gov_alerts:
-                st.markdown(f"""
-                    <div class="wolt-card">
-                        <h4>{alert['מקור']} | {alert['קטגוריה']}</h4>
-                        <p style="font-size: 16px; margin-bottom:5px;"><b>נושא:</b> {alert['כותרת']}</p>
-                        <p style="font-size: 13px; color: gray; margin:0;">תאריך: {alert['תאריך']} | עדיפות: {alert['עדיפות']}</p>
-                    </div>
-                """, unsafe_allow_index=True)
+                st.info(f"**{alert['מקור']}** | {alert['קטגוריה']} \n\n **נושא:** {alert['כותרת']} \n\n תאריך: {alert['תאריך']} | עדיפות: {alert['עדיפות']}")
                 st.markdown(f"[🔗 למעבר למקור לחץ כאן]({alert['קישור']})")
                 with st.expander("🔍 ניתוח מדיניות והמלצות - Gemini AI"):
                     analysis = analyze_with_gemini(alert['מקור'], alert['קטגוריה'], alert['כותרת'])
                     st.write(analysis)
-                st.markdown("<br>", unsafe_allow_index=True)
+                st.markdown("---")
 
+    # טאב 2
     with tab2:
         st.markdown("### סורק החלטות ממשלה וועדות שרים")
         st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
@@ -243,10 +223,11 @@ if check_password():
                 prompt = "אתה מנהל מדיניות ציבורית בוולט ישראל. סרוק את ה-PDF המצורף וחפש סעיפים שקשורים למילות המפתח של החברה. תן תקציר בעברית של סיכונים או הזדמנויות לוולט."
                 try:
                     response = model.generate_content([{"mime_type": "application/pdf", "data": file_bytes}, prompt])
-                    st.markdown(f'<div class="wolt-card" style="background-color: #e6f9fc;"><h4>📋 ממצאי סריקת המסמך:</h4><p>{response.text}</p></div>', unsafe_allow_index=True)
+                    st.success(response.text)
                 except Exception as e:
                     st.error(f"שגיאה בניתוח: {e}")
 
+    # טאב 3
     with tab3:
         st.markdown("### רדאר מדיניות בתקשורת הישראלית והבינלאומית")
         with st.spinner("סורק את 10 אתרי החדשות שהגדרת..."):
@@ -256,15 +237,9 @@ if check_password():
             st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
         else:
             for alert in news_alerts:
-                st.markdown(f"""
-                    <div class="wolt-card">
-                        <h4>{alert['מקור']}</h4>
-                        <p style="font-size: 16px; margin-bottom:5px;"><b>כתבה:</b> {alert['כותרת']}</p>
-                        <p style="font-size: 13px; color: gray; margin:0;">פורסם: {alert['תאריך']}</p>
-                    </div>
-                """, unsafe_allow_index=True)
+                st.info(f"**{alert['מקור']}** \n\n **כתבה:** {alert['כותרת']} \n\n פורסם: {alert['תאריך']}")
                 st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
                 with st.expander("🔍 ניתוח ספין והשפעה תקשורתית - Gemini AI"):
                     analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
                     st.write(analysis)
-                st.markdown("<br>", unsafe_allow_index=True)
+                st.markdown("---")
