@@ -6,7 +6,37 @@ import google.generativeai as genai
 import feedparser
 
 # ==========================================
-# 1. אבטחה ומפתחות API (Streamlit Secrets)
+# 1. הגדרות גלובליות יציבות (למניעת שגיאות הזחה)
+# ==========================================
+KEYWORDS = [
+    "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
+    "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות"
+]
+
+KEYWORDS_EN = [
+    "couriers", "riders", "delivery", "wolt", "gig economy", 
+    "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"
+]
+
+NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
+PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
+
+# רשימת אתרי החדשות בקו אפס - חסין לחלוטין מפני שגיאות סינטקס ב-GitHub!
+NEWS_FEEDS = [
+    ("Davar", "https://www.davar1.co.il/feed/"),
+    ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
+    ("Globes", "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"),
+    ("TheMarker", "https://www.themarker.com/srv/rss/all"),
+    ("Ynet", "https://www.ynet.co.il/Integration/StoryRss538.xml"),
+    ("Maariv", "https://www.maariv.co.il/Rss/RssFeedsMivzakim"),
+    ("MakorRishon", "https://www.makorrishon.co.il/category/news/feed/"),
+    ("Kipa", "https://www.kipa.co.il/rss/news.xml"),
+    ("TimesOfIsrael", "https://www.timesofisrael.com/il/feed/"),
+    ("JPost", "https://www.jpost.com/rss/israelnews")
+]
+
+# ==========================================
+# 2. אבטחה ומפתחות API (Streamlit Secrets)
 # ==========================================
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -15,7 +45,7 @@ else:
     model = None
 
 # ==========================================
-# 2. עיצוב ומיתוג בסיסי ויציב (Pure Python)
+# 3. עיצוב ומיתוג בסיסי ויציב
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
 
@@ -24,7 +54,7 @@ st.subheader("Public Policy Scout | מערכת ארגונית לניטור סי�
 st.markdown("---")
 
 # ==========================================
-# 3. מנגנון בקרת כניסה (הגנת סיסמה)
+# 4. מנגנון בקרת כניסה (הגנת סיסמה)
 # ==========================================
 def check_password():
     if "authenticated" not in st.session_state:
@@ -44,22 +74,6 @@ def check_password():
 if check_password():
 
     # ==========================================
-    # 4. הגדרות ופילטרים (מילות מפתח)
-    # ==========================================
-    KEYWORDS = [
-        "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
-        "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות"
-    ]
-    
-    KEYWORDS_EN = [
-        "couriers", "riders", "delivery", "wolt", "gig economy", 
-        "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"
-    ]
-    
-    NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
-    PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
-
-    # ==========================================
     # 5. מוח ה-AI (Gemini)
     # ==========================================
     def analyze_with_gemini(source, category, title):
@@ -71,7 +85,7 @@ if check_password():
         נתח את הפרסום הבא בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
         מקור: {source} ({category})
         נושא: {title}
-        תשובתך חייבת להיות בעברית מקצועית.
+        תשובתך חייבת להיות בעברית מקצועית וממוקדת.
         """
         try:
             response = model.generate_content(prompt)
@@ -99,7 +113,7 @@ if check_password():
                     committee = item.get('CommitteeName', 'ועדה כללית')
                     if any(word in title for word in KEYWORDS):
                         events.append({
-                            "מקור": "🏛️ כנסת ישראל",
+                            "מקור": "🏛️ כנת ישראל",
                             "קטגוריה": committee,
                             "כותרת": title,
                             "תאריך": datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S').strftime('%d/%m/%Y %H:%M'),
@@ -137,5 +151,12 @@ if check_password():
         return tazkirim
 
     def fetch_news_data():
-        # מבנה שטוח וקצר של הפידים למניעת שגיאות חיתוך וגרשיים ב-GitHub
-        feeds =
+        news_alerts = []
+        for name, url in NEWS_FEEDS:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:10]:
+                    title = entry.get('title', '')
+                    summary = entry.get('summary', '') or entry.get('description', '') or ''
+                    link = entry.get('link', '')
+                    pub_date = entry.get('published', '') or entry.get('updated', '')
