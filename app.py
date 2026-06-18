@@ -54,26 +54,4 @@ else:
 # ==========================================
 st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
 
-st.title("Wolt Israel 🛵")
-st.subheader("Public Policy Scout | מערכת ארגונית לניטור סיכונים")
-st.markdown("---")
-
-# ==========================================
-# 4. מנגנון בקרת כניסה (הגנת סיסמה)
-# ==========================================
-def check_password():
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
-    
-    if not st.session_state["authenticated"]:
-        st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
-        password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
-        if password == "WoltPolicy2026":
-            st.session_state["authenticated"] = True
-            st.rerun()
-        elif password:
-            st.error("⚠️ סיסמה שגויה. הגישה חסומה.")
-        return False
-    return True
-
-if check_password():
+st
