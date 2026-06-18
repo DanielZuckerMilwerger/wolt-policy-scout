@@ -101,12 +101,15 @@ if check_password():
     def fetch_knesset_data():
         events = []
         try:
+            # מתחילים משבוע שעבר
             start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00')
             url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
+            
+            # שינוי קריטי: מיון לפי תאריך עולה (asc) כדי לקבל קודם כל את הדיונים הקרובים ביותר בזמן
             params = {
                 '$filter': f"StartDate ge datetime'{start_date}'",
-                '$orderby': "StartDate desc",
-                '$top': '250',  # הרחבת כמות השורות הנשלפות כדי לא לפספס כלום
+                '$orderby': "StartDate asc",
+                '$top': '300',
                 '$format': "json"
             }
             response = requests.get(url, params=params)
@@ -115,7 +118,7 @@ if check_password():
                     title = item.get('CommitteeSessionName', '') or item.get('Subject', '') or ''
                     committee = item.get('CommitteeName', 'ועדה כללית')
                     
-                    # בדיקה רחבה יותר (גם בכותרת וגם בשם הנושא)
+                    # בדיקה משולבת בכותרת הדיון
                     if any(word in title for word in KEYWORDS):
                         events.append({
                             "מקור": "🏛️ כנסת ישראל",
@@ -220,33 +223,4 @@ if check_password():
     with tab2:
         st.write("### 📂 סורק החלטות ממשלה וועדות שרים (PDF)")
         st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
-        uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
-        
-        if uploaded_file is not None:
-            with st.spinner("ה-AI קורא ומנתח את המסמך..."):
-                file_bytes = uploaded_file.read()
-                prompt = "אתה מנהל מדיניות ציבורית בוולט ישראל. סרוק את ה-PDF המצורף וחפש סעיפים שקשורים למילות המפתח של החברה. תן תקציר בעברית של סיכונים או הזדמנויות לוולט."
-                try:
-                    response = model.generate_content([{"mime_type": "application/pdf", "data": file_bytes}, prompt])
-                    st.success(response.text)
-                except Exception as e:
-                    st.error(f"שגיאה בניתוח: {e}")
-
-    with tab3:
-        st.write("### 📰 רדאר מדיניות בתקשורת הישראלית")
-        with st.spinner("סורק את אתרי החדשות..."):
-            news_alerts = fetch_news_data()
-            
-        if not news_alerts:
-            st.info("אין כתבות אקטואליות חדשות בנושאי הליבה של וולט בשעות האחרונות.")
-        else:
-            for alert in news_alerts:
-                with st.container(border=True):
-                    st.write(f"### 📰 {alert['מקור']}")
-                    st.warning(f"**כתבה:** {alert['כותרת']}")
-                    st.write(f"📅 פורסם בתאריך: {alert['תאריך']}")
-                    st.markdown(f"[🔗 לקריאת הכתבה המלאה לחץ כאן]({alert['קישור']})")
-                    
-                    with st.expander("🔍 ניתוח ספין תקשורתי - Gemini AI"):
-                        analysis = analyze_with_gemini(alert['מקור'], "חדשות ומדיה", alert['כותרת'])
-                        st.write(analysis)
+        uploaded_file = st.file_uploader
