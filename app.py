@@ -24,7 +24,7 @@ NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "
 
 PRIORITY_COMMITTEES = [
     "ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", 
-    "ועדת המדע והטכנולוגיה", "הוועדה המיוחדת לעובדים זרים", "עובדים זרים"
+    "ועדת המדע והטכנולוגיה", "הוויעדה המיוחדת לעובדים זרים", "עובדים זרים"
 ]
 
 NEWS_FEEDS = [
@@ -67,54 +67,4 @@ def check_password():
     
     if not st.session_state["authenticated"]:
         st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
-        password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
-        
-        CORRECT_PASS = "WoltPolicy2026"
-        if password == CORRECT_PASS:
-            st.session_state["authenticated"] = True
-            st.rerun()
-        elif password:
-            st.error("⚠️ סיסמה שגויה. הגישה חסומה.")
-        return False
-    return True
-
-# ==========================================
-# 5. פונקציות איסוף וניתוח נתונים
-# ==========================================
-def analyze_with_gemini(source, category, title):
-    if not model:
-        return "API key missing in Streamlit secrets."
-    
-    p1 = "You are a public policy manager at Wolt Israel. Analyze this in Hebrew (up to 3 lines) for risks or opportunities: "
-    p2 = f"Source: {source}, Category: {category}, Title: {title}"
-    prompt = f"{p1} {p2}"
-    
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except:
-        return "AI analysis unavailable at the moment."
-
-def fetch_knesset_data():
-    events = []
-    try:
-        # טווח מעודכן שסורק קדימה ואחורה כדי לתפוס את הדיון ב-22 ביוני
-        start_dt = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%dT00:00:00')
-        url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
-        
-        params = {
-            '$filter': f"StartDate ge datetime'{start_dt}'",
-            '$orderby': "StartDate asc",
-            '$top': '800', 
-            '$format': "json"
-        }
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            for item in response.json().get('value', []):
-                session_name = item.get('CommitteeSessionName', '') or ''
-                subject = item.get('Subject', '') or ''
-                committee = item.get('CommitteeName', '') or 'ועדה כללית'
-                
-                txt = f"{session_name} {subject} {committee}"
-                match_kw = any(w in txt for w in KEYWORDS)
-                match_comm = any(c
+        password = st
