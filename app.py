@@ -11,7 +11,7 @@ import feedparser
 KEYWORDS = [
     "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
     "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות",
-    "עסקים קטנים", "עסקים בינוניים", "עובדים זרים", "מבקשי מקלט"
+    "עסקים קטנים", "עסקים בינוניים", "עובדים זרים", "מבקשי מקלט", "הקצאת", "תחרות"
 ]
 
 KEYWORDS_EN = [
@@ -21,7 +21,12 @@ KEYWORDS_EN = [
 ]
 
 NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
-PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", "ועדת המדע והטכנולוגיה"]
+
+# הוספנו כאן רשמית גם את הוועדה המיוחדת לעובדים זרים
+PRIORITY_COMMITTEES = [
+    "ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", 
+    "ועדת המדע והטכנולוגיה", "הוועדה המיוחדת לעובדים זרים", "עובדים זרים"
+]
 
 NEWS_FEEDS = [
     ("Davar", "https://www.davar1.co.il/feed/"),
@@ -101,31 +106,39 @@ if check_password():
     def fetch_knesset_data():
         events = []
         try:
-            # מתחילים משבוע שעבר
             start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00')
             url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
             
-            # שינוי קריטי: מיון לפי תאריך עולה (asc) כדי לקבל קודם כל את הדיונים הקרובים ביותר בזמן
             params = {
                 '$filter': f"StartDate ge datetime'{start_date}'",
                 '$orderby': "StartDate asc",
-                '$top': '300',
+                '$top': '500', 
                 '$format': "json"
             }
             response = requests.get(url, params=params)
             if response.status_code == 200:
                 for item in response.json().get('value', []):
-                    title = item.get('CommitteeSessionName', '') or item.get('Subject', '') or ''
-                    committee = item.get('CommitteeName', 'ועדה כללית')
+                    session_name = item.get('CommitteeSessionName', '') or ''
+                    subject = item.get('Subject', '') or ''
+                    committee = item.get('CommitteeName', '') or 'ועדה כללית'
                     
-                    # בדיקה משולבת בכותרת הדיון
-                    if any(word in title for word in KEYWORDS):
+                    full_knesset_text = f"{session_name} {subject} {committee}"
+                    
+                    # הצלבת מילים חכמה: תופס אם מילת המפתח מופיעה בנושא הדיון או בשם הוועדה עצמה
+                    match_keyword = any(word in full_knesset_text for word in KEYWORDS)
+                    match_committee = any(comm in committee for comm in PRIORITY_COMMITTEES)
+                    
+                    if match_keyword or match_committee:
+                        title_to_show = session_name if session_name else subject
+                        if not title_to_show:
+                            title_to_show = f"ישיבה של {committee}"
+                            
                         events.append({
                             "מקור": "🏛️ כנסת ישראל",
                             "קטגוריה": committee,
-                            "כותרת": title,
+                            "כותרת": title_to_show,
                             "תאריך": datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S').strftime('%d/%m/%Y %H:%M'),
-                            "עדיפות": "🔥 גבוהה" if committee in PRIORITY_COMMITTEES else "🔵 רגילה",
+                            "עדיפות": "🔥 גבוהה" if match_committee else "🔵 רגילה",
                             "קישור": "https://main.knesset.gov.il/Activity/committees/Pages/AllCommitteesAgendas.aspx"
                         })
         except:
@@ -223,4 +236,9 @@ if check_password():
     with tab2:
         st.write("### 📂 סורק החלטות ממשלה וועדות שרים (PDF)")
         st.write("מזכירות הממשלה מפרסמת קובצי PDF. העלה אותם כאן לסריקה וניתוח מיידי:")
-        uploaded_file = st.file_uploader
+        uploaded_file = st.file_uploader("גרור או בחר קובץ PDF של הממשלה", type=["pdf"])
+        
+        if uploaded_file is not None:
+            with st.spinner("ה-AI קורא ומנתח את המסמך..."):
+                file_bytes = uploaded_file.read()
+                prompt = "אתה מנהל מדיניות ציבורית בוולט ישראל. סרוק את ה-PDF המצורף וחפש סעיפים שקשורים למילות המפתח של החברה. תן תקציר בעברי
