@@ -85,8 +85,10 @@ def analyze_with_gemini(source, category, title):
     if not model:
         return "ניתוח ה-AI אינו זמין מכיוון שמפתח ה-API לא הוגדר ב-Secrets."
         
-    prompt = f"""
-    אתה מנהל מדיניות ציבורית בכיר בוולט (Wolt) ישראל.
-    נתח את הפרסום הבא בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
-    מקור: {source} ({category})
-    נו
+    # שורה אחת ישרה וקצרה כדי למנוע קריסת סינטקס לחלוטין
+    prompt = f"אתה מנהל מדיניות בוולט. נתח בקצרצר (עד 3 שורות) סיכון/הזדמנות בעברית עבור: מקור={source}, קטגוריה={category}, כותרת={title}"
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except:
+        return "לא
