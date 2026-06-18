@@ -6,16 +6,18 @@ import google.generativeai as genai
 import feedparser
 
 # ==========================================
-# 1. הגדרות גלובליות יציבות (למניעת שגיאות הזחה)
+# 1. הגדרות גלובליות יציבות (כולל מילות המפתח החדשות)
 # ==========================================
 KEYWORDS = [
     "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
-    "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות"
+    "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות",
+    "עסקים קטנים", "עסקים בינוניים", "עובדים זרים", "מבקשי מקלט"
 ]
 
 KEYWORDS_EN = [
     "couriers", "riders", "delivery", "wolt", "gig economy", 
-    "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery"
+    "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery",
+    "small business", "medium business", "foreign workers", "asylum seekers"
 ]
 
 NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
@@ -150,12 +152,10 @@ if check_password():
             pass
         return tazkirim
 
-    # פונקציית עזר פשוטה וישרה לעיבוד פריט בודד בפיד, חסינה לחלוטין לגרשיים!
     def process_entry(name, entry):
         title = entry.get('title', '')
         summary = entry.get('summary', '') or entry.get('description', '') or ''
         link = entry.get('link', '')
-        # תיקון השורה שקרסה: ניקוי הסוגריים והפיכתה לישרה.
         pub_date_str = entry.get('published', '') or entry.get('updated', '')
         
         full_text = f"{title} {summary}".lower()
@@ -182,7 +182,6 @@ if check_password():
                 for entry in feed.entries[:12]:
                     processed = process_entry(name, entry)
                     if processed:
-                        # בדיקת כפילויות לינקים
                         if not any(alert['קישור'] == processed['קישור'] for alert in news_alerts):
                             news_alerts.append(processed)
         except:
