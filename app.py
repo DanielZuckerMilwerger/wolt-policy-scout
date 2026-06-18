@@ -69,7 +69,6 @@ def check_password():
         st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
         password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
         
-        # פיצול השורה בצורה בטוחה למניעת שבירת מחרוזת
         CORRECT_PASS = "WoltPolicy2026"
         if password == CORRECT_PASS:
             st.session_state["authenticated"] = True
@@ -90,34 +89,4 @@ def analyze_with_gemini(source, category, title):
     אתה מנהל מדיניות ציבורית בכיר בוולט (Wolt) ישראל.
     נתח את הפרסום הבא בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
     מקור: {source} ({category})
-    נושא: {title}
-    תשובתך חייבת להיות בעברית מקצועית וממוקדת.
-    """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except:
-        return "לא ניתן לייצר ניתוח AI כרגע."
-
-def fetch_knesset_data():
-    events = []
-    try:
-        start_dt = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00')
-        url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
-        
-        params = {
-            '$filter': f"StartDate ge datetime'{start_dt}'",
-            '$orderby': "StartDate asc",
-            '$top': '500', 
-            '$format': "json"
-        }
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            for item in response.json().get('value', []):
-                session_name = item.get('CommitteeSessionName', '') or ''
-                subject = item.get('Subject', '') or ''
-                committee = item.get('CommitteeName', '') or 'ועדה כללית'
-                
-                full_knesset_text = f"{session_name} {subject} {committee}"
-                
-                match_keyword = any(word in full_k
+    נו
