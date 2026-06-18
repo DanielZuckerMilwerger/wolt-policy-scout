@@ -1,14 +1,111 @@
+import streamlit as st
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
+import google.generativeai as genai
+import feedparser
+
+# ==========================================
+# 1. הגדרות גלובליות יציבות
+# ==========================================
+KEYWORDS = [
+    "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
+    "דו גלגלי", "כלי רכב קלים", "חלטורה", "גיג אקונומי", "מזון", "משלוחים", "פארם", "תרופות",
+    "עסקים קטנים", "עסקים בינוניים", "עובדים זרים", "מבקשי מקלט", "הקצאת", "תחרות"
+]
+
+KEYWORDS_EN = [
+    "couriers", "riders", "delivery", "wolt", "gig economy", 
+    "freelancers", "self-employed", "independent contractors", "food delivery", "pharmacy delivery",
+    "small business", "medium business", "foreign workers", "asylum seekers"
+]
+
+NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
+
+PRIORITY_COMMITTEES = [
+    "ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", 
+    "ועדת המדע והטכנולוגיה", "הוועדה המיוחדת לעובדים זרים", "עובדים זרים"
+]
+
+NEWS_FEEDS = [
+    ("Davar", "https://www.davar1.co.il/feed/"),
+    ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
+    ("Globes", "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederFeed?c=2"),
+    ("TheMarker", "https://www.themarker.com/srv/rss/all"),
+    ("Ynet", "https://www.ynet.co.il/Integration/StoryRss538.xml"),
+    ("Maariv", "https://www.maariv.co.il/Rss/RssFeedsMivzakim"),
+    ("MakorRishon", "https://www.makorrishon.co.il/category/news/feed/"),
+    ("Kipa", "https://www.kipa.co.il/rss/news.xml"),
+    ("TimesOfIsrael", "https://www.timesofisrael.com/il/feed/"),
+    ("JPost", "https://www.jpost.com/rss/israelnews")
+]
+
+# ==========================================
+# 2. אבטחה ומפתחות API (Streamlit Secrets)
+# ==========================================
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-pro')
+else:
+    model = None
+
+# ==========================================
+# 3. עיצוב ומיתוג בסיסי ויציב
+# ==========================================
+st.set_page_config(page_title="Wolt Israel - Policy Scout", layout="wide", page_icon="🛵")
+
+st.title("Wolt Israel 🛵")
+st.subheader("Public Policy Scout | מערכת ארגונית לניטור סיכונים")
+st.markdown("---")
+
+# ==========================================
+# 4. מנגנון בקרת כניסה (הגנת סיסמה)
+# ==========================================
+def check_password():
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+    
+    if not st.session_state["authenticated"]:
+        st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
+        password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
+        
+        CORRECT_PASS = "WoltPolicy2026"
+        if password == CORRECT_PASS:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        elif password:
+            st.error("⚠️ סיסמה שגויה. הגישה חסומה.")
+        return False
+    return True
+
+# ==========================================
+# 5. פונקציות איסוף וניתוח נתונים
+# ==========================================
+def analyze_with_gemini(source, category, title):
+    if not model:
+        return "API key missing in Streamlit secrets."
+    
+    p1 = "You are a public policy manager at Wolt Israel. Analyze this in Hebrew (up to 3 lines) for risks or opportunities: "
+    p2 = f"Source: {source}, Category: {category}, Title: {title}"
+    prompt = f"{p1} {p2}"
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except:
+        return "AI analysis unavailable at the moment."
+
 def fetch_knesset_data():
     events = []
     try:
-        # שינוי הטווח: סריקה החל מ-3 ימים אחורה כדי לתפוס גם דיונים עתידיים בשבוע הקרוב
+        # טווח מעודכן שסורק קדימה ואחורה כדי לתפוס את הדיון ב-22 ביוני
         start_dt = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%dT00:00:00')
         url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
         
         params = {
             '$filter': f"StartDate ge datetime'{start_dt}'",
-            '$orderby': "StartDate asc", # מסדר מהקרוב לרחוק
-            '$top': '800', # הגדלנו ל-800 כדי לא לפספס אף דיון עתידי
+            '$orderby': "StartDate asc",
+            '$top': '800', 
             '$format': "json"
         }
         response = requests.get(url, params=params)
@@ -20,25 +117,4 @@ def fetch_knesset_data():
                 
                 txt = f"{session_name} {subject} {committee}"
                 match_kw = any(w in txt for w in KEYWORDS)
-                match_comm = any(c in committee for c in PRIORITY_COMMITTEES)
-                
-                if match_kw or match_comm:
-                    title_to_show = session_name if session_name else subject
-                    if not title_to_show:
-                        title_to_show = f"ישיבה של {committee}"
-                    
-                    date_parsed = datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%S')
-                    date_str = date_parsed.strftime('%d/%m/%Y %H:%M')
-                    link_kn = "https://main.knesset.gov.il/Activity/committees/Pages/AllCommitteesAgendas.aspx"
-                    
-                    events.append({
-                        "מקור": "🏛️ כנסת ישראל",
-                        "קטגוריה": committee,
-                        "כותרת": title_to_show,
-                        "תאריך": date_str,
-                        "עדיפות": "🔥 גבוהה" if match_comm else "🔵 רגילה",
-                        "קישור": link_kn
-                    })
-    except:
-        pass
-    return events
+                match_comm = any(c
