@@ -1,12 +1,12 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import google.generativeai as genai
 import feedparser
 
 # ==========================================
-# 1. הגדרות גלובליות יציבות (כולל מילות המפתח החדשות)
+# 1. הגדרות גלובליות יציבות
 # ==========================================
 KEYWORDS = [
     "שליחים", "עצמאיים", "שליחים עצמאיים", "פלטפורמות דיגיטליות", 
@@ -21,9 +21,8 @@ KEYWORDS_EN = [
 ]
 
 NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
-PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה"]
+PRIORITY_COMMITTEES = ["ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", "ועדת המדע והטכנולוגיה"]
 
-# רשימת אתרי החדשות בקו אפס - חסין לחלוטין מפני שגיאות סינטקס ב-GitHub!
 NEWS_FEEDS = [
     ("Davar", "https://www.davar1.co.il/feed/"),
     ("Calcalist", "https://www.calcalist.co.il/GeneralRSS/0,16154,L-8,00.xml"),
@@ -102,10 +101,12 @@ if check_password():
     def fetch_knesset_data():
         events = []
         try:
+            start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00')
             url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Agenda"
             params = {
-                '$filter': "StartDate ge datetime'" + datetime.now().strftime('%Y-%m-%dT00:00:00') + "'",
-                '$orderby': "StartDate asc",
+                '$filter': f"StartDate ge datetime'{start_date}'",
+                '$orderby': "StartDate desc",
+                '$top': '250',  # הרחבת כמות השורות הנשלפות כדי לא לפספס כלום
                 '$format': "json"
             }
             response = requests.get(url, params=params)
@@ -113,6 +114,8 @@ if check_password():
                 for item in response.json().get('value', []):
                     title = item.get('CommitteeSessionName', '') or item.get('Subject', '') or ''
                     committee = item.get('CommitteeName', 'ועדה כללית')
+                    
+                    # בדיקה רחבה יותר (גם בכותרת וגם בשם הנושא)
                     if any(word in title for word in KEYWORDS):
                         events.append({
                             "מקור": "🏛️ כנסת ישראל",
