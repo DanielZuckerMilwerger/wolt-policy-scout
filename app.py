@@ -22,7 +22,6 @@ KEYWORDS_EN = [
 
 NEGATIVE_KEYWORDS = ["כלבת", "נשכו", "תנים", "כלב", "חתול", "אושפז", "ננשך"]
 
-# וידוא הכללת הוועדה המיוחדת לעובדים זרים ברשימת העדיפויות
 PRIORITY_COMMITTEES = [
     "ועדת הכלכלה", "ועדת הכספים", "ועדת העבודה והרווחה", 
     "ועדת המדע והטכנולוגיה", "הוועדה המיוחדת לעובדים זרים", "עובדים זרים"
@@ -69,36 +68,4 @@ def check_password():
     if not st.session_state["authenticated"]:
         st.write("### 🔒 כניסה מאובטחת לעובדי וולט")
         password = st.text_input("אנא הכנס סיסמת גישה:", type="password")
-        if password == "WoltPolicy2026":
-            st.session_state["authenticated"] = True
-            st.rerun()
-        elif password:
-            st.error("⚠️ סיסמה שגויה. הגישה חסומה.")
-        return False
-    return True
-
-# ==========================================
-# 5. פונקציות איסוף וניתוח נתונים
-# ==========================================
-def analyze_with_gemini(source, category, title):
-    if not model:
-        return "ניתוח ה-AI אינו זמין מכיוון שמפתח ה-API לא הוגדר ב-Secrets."
-        
-    prompt = f"""
-    אתה מנהל מדיניות ציבורית בכיר בוולט (Wolt) ישראל.
-    נתח את הפרסום הבא בקצרצר (עד 3 שורות). קבע האם יש כאן סיכון או הזדמנות למודל של וולט.
-    מקור: {source} ({category})
-    נושא: {title}
-    תשובתך חייבת להיות בעברית מקצועית וממוקדת.
-    """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except:
-        return "לא ניתן לייצר ניתוח AI כרגע."
-
-def fetch_knesset_data():
-    events = []
-    try:
-        start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00')
-        url = "https://
+        if password ==
